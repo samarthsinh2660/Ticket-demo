@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const prisma = require('../database');
+const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
@@ -25,7 +25,7 @@ const protect = catchAsync(async (req, res, next) => {
     const decoded = jwt.verify(token, ACCESS_SECRET);
 
     // Retrieve user belonging to the token from the database
-    const user = await prisma.user.findUnique({
+    const user = await userRepository.findUnique({
       where: { id: decoded.id },
     });
 
