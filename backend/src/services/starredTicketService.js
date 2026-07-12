@@ -1,7 +1,7 @@
 const starredTicketRepository = require('../repositories/starredTicketRepository');
 const ticketRepository = require('../repositories/ticketRepository');
 const activityLogRepository = require('../repositories/activityLogRepository');
-const AppError = require('../utils/AppError');
+const AppError = require('../utils/appError');
 
 class StarredTicketService {
   /**
