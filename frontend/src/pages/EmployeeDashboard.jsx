@@ -8,12 +8,16 @@ import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Calendar, Settings, MessageSquare, Send, Clock, BookOpen } from 'lucide-react';
+import StarredTicketList from '../components/StarredTicketList';
+import Checklist from '../components/Checklist';
+import AuditTimeline from '../components/AuditTimeline';
+import { Calendar, Settings, MessageSquare, Send, Clock, BookOpen, Star } from 'lucide-react';
 
 export default function EmployeeDashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
+  const [activeTab, setActiveTab] = useState('board');
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -24,6 +28,29 @@ export default function EmployeeDashboard() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const handleToggleStar = async (ticketId) => {
+    if (!selectedTicket) return;
+    try {
+      const isCurrentlyStarred = selectedTicket.starredBy && selectedTicket.starredBy.length > 0;
+      if (isCurrentlyStarred) {
+        await api.delete(`/tickets/${ticketId}/star`);
+        setSelectedTicket((prev) => ({
+          ...prev,
+          starredBy: []
+        }));
+      } else {
+        const response = await api.post(`/tickets/${ticketId}/star`);
+        setSelectedTicket((prev) => ({
+          ...prev,
+          starredBy: [response.data.data.star]
+        }));
+      }
+      fetchTickets();
+    } catch (err) {
+      console.error('Error toggling star:', err);
+    }
+  };
 
   // Updates state
   const [editStatus, setEditStatus] = useState('TO_DO');
@@ -100,13 +127,16 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar title="Staff Workspace" searchVal={searchVal} setSearchVal={setSearchVal} />
+        <Navbar title={activeTab === 'starred' ? 'Starred Tickets' : 'Staff Workspace'} searchVal={activeTab === 'board' ? searchVal : undefined} setSearchVal={activeTab === 'board' ? setSearchVal : undefined} />
 
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Header Action & Filter Panel */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+          
+          {activeTab === 'board' && (
+            <>
+              {/* Header Action & Filter Panel */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
             
             {/* Filter selectors */}
             <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -174,6 +204,13 @@ export default function EmployeeDashboard() {
               ))}
             </div>
           )}
+            </>
+          )}
+
+          {activeTab === 'starred' && (
+            <StarredTicketList onTicketClick={handleOpenDetails} />
+          )}
+
         </main>
       </div>
 
@@ -186,6 +223,22 @@ export default function EmployeeDashboard() {
         {selectedTicket && (
           <div className="space-y-6">
             
+            {/* Title & Star Button */}
+            <div className="flex justify-between items-start bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-750">
+              <div className="flex-1 mr-2">
+                <span className="font-mono text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-wider">{selectedTicket.ticketNumber}</span>
+                <h3 className="text-base font-bold text-gray-905 dark:text-white mt-0.5">{selectedTicket.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleStar(selectedTicket.id)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-500 hover:bg-gray-150 dark:hover:bg-gray-800 transition-colors animate-all"
+                title={selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'Unstar Ticket' : 'Star Ticket'}
+              >
+                <Star className={`w-5 h-5 ${selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
+              </button>
+            </div>
+
             {/* Meta panel */}
             <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-750 space-y-2">
               <h3 className="text-base font-bold text-gray-900 dark:text-white">{selectedTicket.title}</h3>
@@ -258,49 +311,14 @@ export default function EmployeeDashboard() {
               </div>
             </form>
 
-            {/* Action History Feed */}
-            <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <h4 className="text-xs font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider flex items-center space-x-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Ticket Activity Logs</span>
-              </h4>
-              {selectedTicket.activityLogs && selectedTicket.activityLogs.length === 0 ? (
-                <p className="text-xs text-gray-450 dark:text-gray-500 italic">No activity logged yet.</p>
-              ) : (
-                <div className="flow-root">
-                  <ul className="-mb-8">
-                    {selectedTicket.activityLogs?.map((log, idx) => (
-                      <li key={log.id}>
-                        <div className="relative pb-8">
-                          {idx !== selectedTicket.activityLogs.length - 1 && (
-                            <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-                          )}
-                          <div className="relative flex space-x-3">
-                            <div>
-                              <span className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center ring-8 ring-white dark:ring-gray-800 text-indigo-500">
-                                <BookOpen className="w-4 h-4" />
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
-                              <div>
-                                <p className="text-xs text-gray-550 dark:text-gray-300">
-                                  <span className="font-semibold text-gray-800 dark:text-white">{log.user?.name}</span> ({log.action})
-                                </p>
-                                {log.details && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 italic">{log.details}</p>
-                                )}
-                              </div>
-                              <div className="text-right text-[10px] whitespace-nowrap text-gray-400">
-                                {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            {/* Checklist Section (Editable for Employee/Staff) */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <Checklist ticketId={selectedTicket.id} readOnly={false} />
+            </div>
+
+            {/* Audit Timeline Section */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <AuditTimeline activityLogs={selectedTicket.activityLogs} />
             </div>
 
           </div>

@@ -40,60 +40,96 @@ enum TicketCategory {
 }
 
 model User {
-  id              Int           @id @default(autoincrement())
-  email           String        @unique
+  id              Int             @id @default(autoincrement())
+  email           String          @unique
   password        String
   name            String
   role            Role
   department      String?
-  status          String        @default("ACTIVE") // ACTIVE or INACTIVE
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  status          String          @default("ACTIVE") // ACTIVE or INACTIVE
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   
   // Relations
-  ticketsCreated  Ticket[]      @relation("CustomerTickets")
-  ticketsAssigned Ticket[]      @relation("AssigneeTickets")
+  ticketsCreated  Ticket[]        @relation("CustomerTickets")
+  ticketsAssigned Ticket[]        @relation("AssigneeTickets")
   activityLogs    ActivityLog[]
+  starredTickets  StarredTicket[]
+  completedItems  ChecklistItem[] @relation("CompletedItems")
 
   @@map("users")
 }
 
 model Ticket {
-  id           Int            @id @default(autoincrement())
-  ticketNumber String         @unique
+  id           Int             @id @default(autoincrement())
+  ticketNumber String          @unique
   title        String
   description  String
-  status       TicketStatus   @default(TO_DO)
-  priority     TicketPriority @default(MEDIUM)
+  status       TicketStatus    @default(TO_DO)
+  priority     TicketPriority  @default(MEDIUM)
   category     TicketCategory
   dueDate      DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   // Foreign keys
   customerId   Int
   assigneeId   Int?
 
   // Relations
-  customer     User           @relation("CustomerTickets", fields: [customerId], references: [id], onDelete: Cascade)
-  assignee     User?          @relation("AssigneeTickets", fields: [assigneeId], references: [id], onDelete: SetNull)
-  activityLogs ActivityLog[]
+  customer       User            @relation("CustomerTickets", fields: [customerId], references: [id], onDelete: Cascade)
+  assignee       User?           @relation("AssigneeTickets", fields: [assigneeId], references: [id], onDelete: SetNull)
+  activityLogs   ActivityLog[]
+  checklistItems ChecklistItem[]
+  starredBy      StarredTicket[]
 
   @@map("tickets")
 }
 
 // ActivityLog model for keeping track of ticket actions and comments/replies
 model ActivityLog {
-  id        Int      @id @default(autoincrement())
-  ticketId  Int
+  id            Int      @id @default(autoincrement())
+  ticketId      Int
+  userId        Int
+  action        String
+  details       String?
+  previousValue String?
+  newValue      String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  ticket        Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model ChecklistItem {
+  id            Int       @id @default(autoincrement())
+  ticketId      Int
+  title         String
+  completed     Boolean   @default(false)
+  completedById Int?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  order         Int       @default(0)
+
+  // Relations
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  completedBy User?    @relation("CompletedItems", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@map("checklist_items")
+}
+
+model StarredTicket {
   userId    Int
-  action    String
-  details   String?
+  ticketId  Int
   createdAt DateTime @default(now())
 
   // Relations
-  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  @@map("activity_logs")
+  @@id([userId, ticketId])
+  @@map("starred_tickets")
 }

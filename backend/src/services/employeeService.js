@@ -38,43 +38,58 @@ class EmployeeService {
       ];
     }
 
-    // Sorting
-    const orderBy = {};
-    if (query.sortBy) {
-      orderBy[query.sortBy] = query.sortOrder === 'desc' ? 'desc' : 'asc';
-    } else {
-      orderBy.createdAt = 'desc';
-    }
-
-    // Fetch users along with their assigned tickets
+    // Fetch ALL matching users (to sort in memory correctly)
     const employees = await userRepository.findMany({
       where,
-      skip,
-      take: limit,
-      orderBy,
       include: {
         ticketsAssigned: {
           select: {
             id: true,
             status: true,
             updatedAt: true,
+            createdAt: true,
+            dueDate: true,
           },
         },
       },
     });
 
-    const totalCount = await userRepository.count({ where });
+    const now = new Date();
 
     // Format metrics
     const formattedEmployees = employees.map((emp) => {
       const tickets = emp.ticketsAssigned || [];
       const assignedCount = tickets.length;
       const openCount = tickets.filter(t => t.status !== 'DONE' && t.status !== 'CLOSED').length;
-      const completedCount = tickets.filter(t => t.status === 'DONE').length;
+      const completedTickets = tickets.filter(t => t.status === 'DONE' || t.status === 'CLOSED');
+      const completedCount = completedTickets.length;
+      const inProgressCount = tickets.filter(t => t.status === 'IN_PROGRESS').length;
+      const todoCount = tickets.filter(t => t.status === 'TO_DO').length;
+      const closedCount = tickets.filter(t => t.status === 'CLOSED').length;
 
+      // Overdue tickets count
+      const overdueCount = tickets.filter(t => t.status !== 'DONE' && t.status !== 'CLOSED' && t.dueDate && new Date(t.dueDate) < now).length;
+
+      // Average Resolution Time (in hours)
+      let avgResolutionTime = 0;
+      if (completedTickets.length > 0) {
+        const totalDuration = completedTickets.reduce((sum, t) => {
+          return sum + (new Date(t.updatedAt) - new Date(t.createdAt));
+        }, 0);
+        avgResolutionTime = Math.round((totalDuration / completedTickets.length) / (1000 * 60 * 60));
+      }
+
+      // Last Completed Ticket
+      const lastCompletedTicket = completedTickets.reduce((latest, t) => {
+        return !latest || t.updatedAt > latest.updatedAt ? t : latest;
+      }, null);
+
+      // Last Ticket Update (last activity)
       const lastTicketUpdate = tickets.reduce((latest, t) => {
         return !latest || t.updatedAt > latest ? t.updatedAt : latest;
       }, null);
+
+      const completionRate = assignedCount > 0 ? Math.round((completedCount / assignedCount) * 100) : 0;
 
       const { password: _, ...employeeProfile } = emp;
 
@@ -82,14 +97,46 @@ class EmployeeService {
         ...employeeProfile,
         assignedTicketsCount: assignedCount,
         openTicketsCount: openCount,
+        todoTicketsCount: todoCount,
+        inProgressTicketsCount: inProgressCount,
         completedTicketsCount: completedCount,
-        workload: openCount, // Workload is open tickets count
+        closedTicketsCount: closedCount,
+        workload: openCount, // raw open tickets count
+        completionRate,
+        avgResolutionTime,
+        overdueCount,
+        lastCompletedTicket: lastCompletedTicket ? { id: lastCompletedTicket.id, ticketNumber: lastCompletedTicket.ticketNumber, title: lastCompletedTicket.title, updatedAt: lastCompletedTicket.updatedAt } : null,
         lastActivity: lastTicketUpdate || emp.createdAt,
       };
     });
 
+    // In-memory Sorting
+    const sortBy = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
+
+    formattedEmployees.sort((a, b) => {
+      let valA = a[sortBy];
+      let valB = b[sortBy];
+
+      if (valA === undefined || valA === null) valA = 0;
+      if (valB === undefined || valB === null) valB = 0;
+
+      if (typeof valA === 'string') {
+        return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      } else if (valA instanceof Date || (typeof valA === 'string' && !isNaN(Date.parse(valA)))) {
+        const timeA = new Date(valA).getTime();
+        const timeB = new Date(valB).getTime();
+        return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+      } else {
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+      }
+    });
+
+    const totalCount = formattedEmployees.length;
+    const paginatedEmployees = formattedEmployees.slice(skip, skip + limit);
+
     return {
-      employees: formattedEmployees,
+      employees: paginatedEmployees,
       totalCount,
       page,
       limit,
@@ -127,19 +174,36 @@ class EmployeeService {
     const assignedCount = tickets.length;
     const openTickets = tickets.filter(t => t.status !== 'DONE' && t.status !== 'CLOSED');
     const openCount = openTickets.length;
-    const completedTickets = tickets.filter(t => t.status === 'DONE');
+    const completedTickets = tickets.filter(t => t.status === 'DONE' || t.status === 'CLOSED');
+    const completedCount = completedTickets.length;
+    const inProgressCount = tickets.filter(t => t.status === 'IN_PROGRESS').length;
+    const todoCount = tickets.filter(t => t.status === 'TO_DO').length;
+    const closedCount = tickets.filter(t => t.status === 'CLOSED').length;
     
     // Average resolution time (in hours)
-    const resolvedTickets = completedTickets.filter(t => t.updatedAt);
     let avgResolutionTime = 0;
-    if (resolvedTickets.length > 0) {
-      const totalTimeMs = resolvedTickets.reduce((sum, t) => {
+    if (completedTickets.length > 0) {
+      const totalTimeMs = completedTickets.reduce((sum, t) => {
         return sum + (new Date(t.updatedAt) - new Date(t.createdAt));
       }, 0);
-      avgResolutionTime = Math.round((totalTimeMs / (1000 * 60 * 60 * resolvedTickets.length)) * 10) / 10;
+      avgResolutionTime = Math.round((totalTimeMs / (1000 * 60 * 60 * completedTickets.length)) * 10) / 10;
     }
 
-    const completionRate = assignedCount > 0 ? Math.round((completedTickets.length / assignedCount) * 100) : 0;
+    const completionRate = assignedCount > 0 ? Math.round((completedCount / assignedCount) * 100) : 0;
+
+    // Overdue tickets count
+    const now = new Date();
+    const overdueCount = tickets.filter(t => t.status !== 'DONE' && t.status !== 'CLOSED' && t.dueDate && new Date(t.dueDate) < now).length;
+
+    // Last Completed Ticket
+    const lastCompletedTicket = completedTickets.reduce((latest, t) => {
+      return !latest || t.updatedAt > latest.updatedAt ? t : latest;
+    }, null);
+
+    // Last Activity
+    const lastTicketUpdate = tickets.reduce((latest, t) => {
+      return !latest || t.updatedAt > latest ? t.updatedAt : latest;
+    }, null);
 
     const { password: _, ...employeeProfile } = emp;
 
@@ -148,10 +212,16 @@ class EmployeeService {
       stats: {
         assignedTicketsCount: assignedCount,
         openTicketsCount: openCount,
-        completedTicketsCount: completedTickets.length,
+        todoTicketsCount: todoCount,
+        inProgressTicketsCount: inProgressCount,
+        completedTicketsCount: completedCount,
+        closedTicketsCount: closedCount,
         workload: openCount,
         avgResolutionTime,
         completionRate,
+        overdueCount,
+        lastCompletedTicket: lastCompletedTicket ? { id: lastCompletedTicket.id, ticketNumber: lastCompletedTicket.ticketNumber, title: lastCompletedTicket.title, updatedAt: lastCompletedTicket.updatedAt } : null,
+        lastActivity: lastTicketUpdate || emp.createdAt,
       },
       currentTickets: openTickets,
       recentCompletedTickets: completedTickets.slice(0, 5),

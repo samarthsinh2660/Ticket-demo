@@ -40,6 +40,22 @@ class AuthController {
       data,
     });
   });
+
+  /**
+   * Handles password change requests.
+   */
+  changePassword = catchAsync(async (req, res, next) => {
+    // If user is authenticated, we can optionally default the email
+    const email = req.body.email || req.user?.email;
+    const { oldPassword, newPassword } = req.body;
+
+    await authService.changePassword(email, oldPassword, newPassword);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Password changed successfully.',
+    });
+  });
 }
 
 module.exports = new AuthController();

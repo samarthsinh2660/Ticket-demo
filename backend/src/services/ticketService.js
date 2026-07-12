@@ -83,6 +83,7 @@ class TicketService {
       include: {
         customer: { select: { id: true, name: true, email: true } },
         assignee: { select: { id: true, name: true, email: true } },
+        starredBy: { where: { userId } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -97,6 +98,7 @@ class TicketService {
       include: {
         customer: { select: { id: true, name: true, email: true } },
         assignee: { select: { id: true, name: true, email: true } },
+        starredBy: { where: { userId } },
         activityLogs: {
           include: {
             user: { select: { id: true, name: true, role: true } },
@@ -150,23 +152,31 @@ class TicketService {
       // Admin update rights
       if (data.status && data.status !== ticket.status) {
         updateData.status = data.status;
+        const isClosed = data.status === 'CLOSED';
+        const isReopened = ticket.status === 'CLOSED' && data.status !== 'CLOSED';
         logs.push({
-          action: data.status === 'CLOSED' ? 'Closed' : 'Status Changed',
+          action: isClosed ? 'Ticket Closed' : isReopened ? 'Ticket Reopened' : 'Status Changed',
           details: `Status updated from ${ticket.status} to ${data.status}`,
+          previousValue: ticket.status,
+          newValue: data.status,
         });
       }
       if (data.priority && data.priority !== ticket.priority) {
         updateData.priority = data.priority;
         logs.push({
-          action: 'Priority Updated',
+          action: 'Priority Changed',
           details: `Priority updated from ${ticket.priority} to ${data.priority}`,
+          previousValue: ticket.priority,
+          newValue: data.priority,
         });
       }
       if (data.assigneeId !== undefined && data.assigneeId !== ticket.assigneeId) {
         updateData.assigneeId = data.assigneeId ? parseInt(data.assigneeId, 10) : null;
         logs.push({
-          action: 'Assigned',
+          action: 'Ticket Assigned',
           details: data.assigneeId ? `Assigned to user ID ${data.assigneeId}` : 'Unassigned',
+          previousValue: ticket.assigneeId ? String(ticket.assigneeId) : 'Unassigned',
+          newValue: data.assigneeId ? String(data.assigneeId) : 'Unassigned',
         });
       }
       if (data.dueDate !== undefined) {
@@ -176,21 +186,47 @@ class TicketService {
         if (formattedDataDate !== formattedTicketDate) {
           updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
           logs.push({
-            action: 'Due Date Updated',
+            action: 'Due Date Changed',
             details: data.dueDate ? `Due date set to ${formattedDataDate}` : 'Due date removed',
+            previousValue: formattedTicketDate || 'None',
+            newValue: formattedDataDate || 'None',
           });
         }
       }
       if (data.category && data.category !== ticket.category) {
         updateData.category = data.category;
+        logs.push({
+          action: 'Category Changed',
+          details: `Category changed from ${ticket.category} to ${data.category}`,
+          previousValue: ticket.category,
+          newValue: data.category,
+        });
       }
-      if (data.title && data.title !== ticket.title) updateData.title = data.title;
-      if (data.description && data.description !== ticket.description) updateData.description = data.description;
+      if (data.title && data.title !== ticket.title) {
+        updateData.title = data.title;
+        logs.push({
+          action: 'Ticket Updated',
+          details: `Title updated to "${data.title}"`,
+          previousValue: ticket.title,
+          newValue: data.title,
+        });
+      }
+      if (data.description && data.description !== ticket.description) {
+        updateData.description = data.description;
+        logs.push({
+          action: 'Ticket Updated',
+          details: `Description updated`,
+          previousValue: 'Updated',
+          newValue: 'Updated',
+        });
+      }
 
       if (data.reply) {
         logs.push({
-          action: 'Admin Reply',
+          action: 'Comment Added',
           details: data.reply,
+          previousValue: null,
+          newValue: data.reply,
         });
       }
     } else if (role === 'EMPLOYEE') {
@@ -201,16 +237,22 @@ class TicketService {
 
       if (data.status && data.status !== ticket.status) {
         updateData.status = data.status;
+        const isClosed = data.status === 'CLOSED';
+        const isReopened = ticket.status === 'CLOSED' && data.status !== 'CLOSED';
         logs.push({
-          action: data.status === 'CLOSED' ? 'Closed' : 'Status Changed',
+          action: isClosed ? 'Ticket Closed' : isReopened ? 'Ticket Reopened' : 'Status Changed',
           details: `Status updated by employee from ${ticket.status} to ${data.status}`,
+          previousValue: ticket.status,
+          newValue: data.status,
         });
       }
 
       if (data.reply) {
         logs.push({
-          action: 'Employee Reply',
+          action: 'Comment Added',
           details: data.reply,
+          previousValue: null,
+          newValue: data.reply,
         });
       }
     } else {
@@ -218,22 +260,50 @@ class TicketService {
       if (data.status === 'CLOSED' && ticket.status !== 'CLOSED') {
         updateData.status = 'CLOSED';
         logs.push({
-          action: 'Closed',
+          action: 'Ticket Closed',
           details: 'Ticket closed by customer',
+          previousValue: ticket.status,
+          newValue: 'CLOSED',
         });
       }
       
       // Prevent editing fields if ticket is already closed
       if (ticket.status !== 'CLOSED') {
-        if (data.title && data.title !== ticket.title) updateData.title = data.title;
-        if (data.description && data.description !== ticket.description) updateData.description = data.description;
-        if (data.category && data.category !== ticket.category) updateData.category = data.category;
+        if (data.title && data.title !== ticket.title) {
+          updateData.title = data.title;
+          logs.push({
+            action: 'Ticket Updated',
+            details: `Title updated to "${data.title}"`,
+            previousValue: ticket.title,
+            newValue: data.title,
+          });
+        }
+        if (data.description && data.description !== ticket.description) {
+          updateData.description = data.description;
+          logs.push({
+            action: 'Ticket Updated',
+            details: `Description updated`,
+            previousValue: 'Updated',
+            newValue: 'Updated',
+          });
+        }
+        if (data.category && data.category !== ticket.category) {
+          updateData.category = data.category;
+          logs.push({
+            action: 'Category Changed',
+            details: `Category changed from ${ticket.category} to ${data.category}`,
+            previousValue: ticket.category,
+            newValue: data.category,
+          });
+        }
       }
 
       if (data.reply) {
         logs.push({
-          action: 'Customer Reply',
+          action: 'Comment Added',
           details: data.reply,
+          previousValue: null,
+          newValue: data.reply,
         });
       }
     }
@@ -246,6 +316,7 @@ class TicketService {
       include: {
         customer: { select: { id: true, name: true, email: true } },
         assignee: { select: { id: true, name: true, email: true } },
+        starredBy: { where: { userId } },
       },
     });
 
@@ -257,6 +328,8 @@ class TicketService {
           userId,
           action: log.action,
           details: log.details,
+          previousValue: log.previousValue !== undefined && log.previousValue !== null ? String(log.previousValue) : null,
+          newValue: log.newValue !== undefined && log.newValue !== null ? String(log.newValue) : null,
         },
       });
     }

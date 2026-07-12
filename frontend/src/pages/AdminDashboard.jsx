@@ -8,6 +8,9 @@ import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import StarredTicketList from '../components/StarredTicketList';
+import Checklist from '../components/Checklist';
+import AuditTimeline from '../components/AuditTimeline';
 import {
   PieChart,
   Pie,
@@ -37,7 +40,8 @@ import {
   Edit2,
   TrendingUp,
   Percent,
-  Search
+  Search,
+  Star
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -305,6 +309,29 @@ export default function AdminDashboard() {
   const handleOpenDetails = (ticket) => {
     fetchSingleTicket(ticket.id);
     setIsDetailsOpen(true);
+  };
+
+  const handleToggleStar = async (ticketId) => {
+    if (!selectedTicket) return;
+    try {
+      const isCurrentlyStarred = selectedTicket.starredBy && selectedTicket.starredBy.length > 0;
+      if (isCurrentlyStarred) {
+        await api.delete(`/tickets/${ticketId}/star`);
+        setSelectedTicket((prev) => ({
+          ...prev,
+          starredBy: []
+        }));
+      } else {
+        const response = await api.post(`/tickets/${ticketId}/star`);
+        setSelectedTicket((prev) => ({
+          ...prev,
+          starredBy: [response.data.data.star]
+        }));
+      }
+      fetchTickets();
+    } catch (err) {
+      console.error('Error toggling star:', err);
+    }
   };
 
   const handleAdminUpdate = async (e) => {
@@ -744,7 +771,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsCreateEmployeeOpen(true)}
-                  className="flex items-center justify-center space-x-1.5 px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                  className="flex items-center justify-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Employee</span>
@@ -798,18 +825,35 @@ export default function AdminDashboard() {
                               {emp.department || <span className="text-gray-400 italic">None</span>}
                             </td>
                             <td className="px-6 py-4 text-center font-bold">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
-                                emp.workload > 5 
-                                  ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
-                                  : emp.workload > 2
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
-                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400'
-                              }`}>
-                                {emp.workload} active
+                              <span className="text-xs text-gray-700 dark:text-gray-305">
+                                {emp.assignedTicketsCount} ({emp.completedTicketsCount} resolved)
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-center font-semibold text-xs text-gray-500 dark:text-gray-400">
-                              {emp.assignedTicketsCount} / {emp.openTicketsCount} / {emp.completedTicketsCount}
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col space-y-1 w-32 mx-auto">
+                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                  <span className="text-gray-500 dark:text-gray-400">{emp.openTicketsCount} active / 10 max</span>
+                                  <span className={`${
+                                    emp.openTicketsCount <= 7
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : emp.openTicketsCount <= 10
+                                      ? 'text-amber-600 dark:text-amber-400'
+                                      : 'text-rose-600 dark:text-rose-400'
+                                  }`}>{Math.round((emp.openTicketsCount / 10) * 100)}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-100 dark:bg-gray-750 rounded-full overflow-hidden border border-gray-200/50 dark:border-gray-800">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${
+                                      emp.openTicketsCount <= 7
+                                        ? 'bg-emerald-500'
+                                        : emp.openTicketsCount <= 10
+                                        ? 'bg-amber-500'
+                                        : 'bg-rose-500'
+                                    }`}
+                                    style={{ width: `${Math.min(100, Math.round((emp.openTicketsCount / 10) * 100))}%` }}
+                                  />
+                                </div>
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -891,6 +935,11 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* 4. STARRED TICKETS TAB */}
+          {activeTab === 'starred' && (
+            <StarredTicketList onTicketClick={handleOpenDetails} />
+          )}
+
         </main>
       </div>
 
@@ -904,10 +953,20 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             
             {/* Meta details */}
-            <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-750 space-y-2">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">{selectedTicket.title}</h3>
+            <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-2xl border border-gray-105 dark:border-gray-750 space-y-2">
+              <div className="flex justify-between items-start">
+                <h3 className="text-base font-bold text-gray-905 dark:text-white flex-1 mr-2">{selectedTicket.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => handleToggleStar(selectedTicket.id)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-500 hover:bg-gray-150 dark:hover:bg-gray-800 transition-colors animate-all"
+                  title={selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'Unstar Ticket' : 'Star Ticket'}
+                >
+                  <Star className={`w-5 h-5 ${selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
+                </button>
+              </div>
               <p className="text-xs text-gray-550 dark:text-gray-400">
-                Raised by <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedTicket.customer?.name}</span> ({selectedTicket.customer?.email})
+                Raised by <span className="font-semibold text-gray-700 dark:text-gray-305">{selectedTicket.customer?.name}</span> ({selectedTicket.customer?.email})
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-805 leading-relaxed whitespace-pre-line">
                 {selectedTicket.description}
@@ -1007,7 +1066,7 @@ export default function AdminDashboard() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 bg-indigo-650 hover:bg-indigo-755 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-sm"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 shadow-sm"
                 >
                   Apply Changes
                 </button>
@@ -1034,6 +1093,16 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+
+            {/* Checklist Section */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <Checklist ticketId={selectedTicket.id} readOnly={false} />
+            </div>
+
+            {/* Audit Timeline Section */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <AuditTimeline activityLogs={selectedTicket.activityLogs} />
+            </div>
           </div>
         )}
       </Modal>
@@ -1126,7 +1195,7 @@ export default function AdminDashboard() {
             <button
               type="submit"
               disabled={actionLoading}
-              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
             >
               Create Account
             </button>
@@ -1230,7 +1299,7 @@ export default function AdminDashboard() {
             <button
               type="submit"
               disabled={actionLoading}
-              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
             >
               Save Changes
             </button>
@@ -1300,7 +1369,26 @@ export default function AdminDashboard() {
                   <Percent className="w-3.5 h-3.5 text-gray-400" />
                 </h5>
               </div>
+
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-750 text-center">
+                <p className="text-xs font-semibold text-gray-455 dark:text-gray-500 uppercase tracking-wider">Overdue</p>
+                <h5 className="text-lg font-bold text-rose-650 dark:text-rose-400 mt-1">{detailedEmployee.stats.overdueCount}</h5>
+              </div>
             </div>
+
+            {/* Last completed ticket banner details */}
+            {detailedEmployee.stats.lastCompletedTicket && (
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/10 p-3.5 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30 text-xs">
+                <span className="font-bold text-indigo-700 dark:text-indigo-400">Last Completed Ticket:</span>{' '}
+                <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                  {detailedEmployee.stats.lastCompletedTicket.ticketNumber}
+                </span>{' '}
+                - <span className="font-medium text-gray-850 dark:text-gray-205">{detailedEmployee.stats.lastCompletedTicket.title}</span>{' '}
+                <span className="text-gray-405 dark:text-gray-500">
+                  (resolved {new Date(detailedEmployee.stats.lastCompletedTicket.updatedAt).toLocaleDateString()})
+                </span>
+              </div>
+            )}
 
             {/* Active Tickets List */}
             <div className="space-y-2">

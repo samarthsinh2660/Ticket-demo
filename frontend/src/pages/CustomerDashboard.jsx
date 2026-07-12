@@ -8,12 +8,16 @@ import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Plus, X, AlertCircle, MessageSquare, Send, CheckCircle2 } from 'lucide-react';
+import StarredTicketList from '../components/StarredTicketList';
+import Checklist from '../components/Checklist';
+import AuditTimeline from '../components/AuditTimeline';
+import { Plus, X, AlertCircle, MessageSquare, Send, CheckCircle2, Star } from 'lucide-react';
 
 export default function CustomerDashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
+  const [activeTab, setActiveTab] = useState('board');
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -24,6 +28,29 @@ export default function CustomerDashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const handleToggleStar = async (ticketId) => {
+    if (!selectedTicket) return;
+    try {
+      const isCurrentlyStarred = selectedTicket.starredBy && selectedTicket.starredBy.length > 0;
+      if (isCurrentlyStarred) {
+        await api.delete(`/tickets/${ticketId}/star`);
+        setSelectedTicket((prev) => ({
+          ...prev,
+          starredBy: []
+        }));
+      } else {
+        const response = await api.post(`/tickets/${ticketId}/star`);
+        setSelectedTicket((prev) => ({
+          ...prev,
+          starredBy: [response.data.data.star]
+        }));
+      }
+      fetchTickets();
+    } catch (err) {
+      console.error('Error toggling star:', err);
+    }
+  };
 
   // Form states
   const [title, setTitle] = useState('');
@@ -151,15 +178,17 @@ export default function CustomerDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar title="My Support Tickets" searchVal={searchVal} setSearchVal={setSearchVal} />
+        <Navbar title={activeTab === 'starred' ? 'Starred Tickets' : 'My Support Tickets'} searchVal={activeTab === 'board' ? searchVal : undefined} setSearchVal={activeTab === 'board' ? setSearchVal : undefined} />
 
         {/* Workspace Body */}
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           
-          {/* Header Action & Filter Panel */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+          {activeTab === 'board' && (
+            <>
+              {/* Header Action & Filter Panel */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
             
             {/* Filter selectors */}
             <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -244,6 +273,12 @@ export default function CustomerDashboard() {
               ))}
             </div>
           )}
+            </>
+          )}
+
+          {activeTab === 'starred' && (
+            <StarredTicketList onTicketClick={handleOpenDetails} />
+          )}
 
         </main>
       </div>
@@ -327,6 +362,22 @@ export default function CustomerDashboard() {
         {selectedTicket && (
           <div className="space-y-6">
             
+            {/* Title & Star Button */}
+            <div className="flex justify-between items-start bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-750">
+              <div className="flex-1 mr-2">
+                <span className="font-mono text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-wider">{selectedTicket.ticketNumber}</span>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mt-0.5">{selectedTicket.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleStar(selectedTicket.id)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-500 hover:bg-gray-150 dark:hover:bg-gray-800 transition-colors"
+                title={selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'Unstar Ticket' : 'Star Ticket'}
+              >
+                <Star className={`w-5 h-5 ${selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'text-yellow-505 fill-yellow-500' : 'text-gray-400'}`} />
+              </button>
+            </div>
+
             {/* Context Fields */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-750 text-xs">
               <div>
@@ -417,7 +468,7 @@ export default function CustomerDashboard() {
                     <button
                       type="submit"
                       disabled={actionLoading}
-                      className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                     >
                       Save Edits
                     </button>
@@ -450,61 +501,17 @@ export default function CustomerDashboard() {
               </form>
             )}
 
-            {/* Timeline / Activity Logs */}
-            <div className="pt-6 border-t border-gray-100 dark:border-gray-700 space-y-4">
-              <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-                <MessageSquare className="w-4 h-4 text-indigo-550" />
-                <span>Activity Timeline</span>
-              </h4>
-              <div className="relative border-l border-gray-200 dark:border-gray-700 ml-3 space-y-6">
-                {selectedTicket.activityLogs?.map((log) => (
-                  <div key={log.id} className="relative pl-6">
-                    {/* Circle icon marker */}
-                    <div className={`absolute -left-1.5 top-1.5 w-3 h-3 rounded-full border-2 ${
-                      log.action === 'Closed'
-                        ? 'bg-red-500 border-red-500 dark:bg-red-400 dark:border-red-400'
-                        : log.action === 'Ticket Created'
-                        ? 'bg-green-500 border-green-500 dark:bg-green-400 dark:border-green-400'
-                        : log.action.includes('Reply')
-                        ? 'bg-blue-500 border-blue-500 dark:bg-blue-400 dark:border-blue-400'
-                        : 'bg-slate-400 border-slate-400 dark:bg-slate-500 dark:border-slate-500'
-                    }`}></div>
-                    
-                    {/* Log Body */}
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2 text-xs">
-                        <span className="font-bold text-gray-800 dark:text-gray-300">
-                          {log.user.name}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500">
-                          ({log.user.role})
-                        </span>
-                        <span className="text-gray-400 dark:text-gray-500">•</span>
-                        <span className="text-gray-400 dark:text-gray-500">
-                          {new Date(log.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-250">
-                        {log.action}
-                      </p>
-
-                      {log.details && (
-                        <p className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed mt-1 p-2.5 rounded-xl border ${
-                          log.action.includes('Reply')
-                            ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-900/50'
-                            : 'bg-gray-50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800/80'
-                        }`}>
-                          {log.details}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+          {/* Checklist Section (Read-only for Customers) */}
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+            <Checklist ticketId={selectedTicket.id} readOnly={true} />
           </div>
+
+          {/* Audit Timeline Section */}
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+            <AuditTimeline activityLogs={selectedTicket.activityLogs} />
+          </div>
+
+        </div>
         )}
       </Modal>
 

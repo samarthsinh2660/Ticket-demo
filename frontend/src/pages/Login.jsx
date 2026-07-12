@@ -1,22 +1,29 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, User, AlertCircle, KeyRound, Mail, UserPlus, Briefcase } from 'lucide-react';
+import api from '../services/api';
+import { ShieldCheck, User, AlertCircle, KeyRound, Mail, UserPlus, Briefcase, CheckCircle } from 'lucide-react';
 
 export default function Login() {
-  const [isRegister, setIsRegister] = useState(false);
+  const [mode, setMode] = useState('login'); // 'login', 'signup', 'changepassword'
   
   // Shared fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
   // Login specific
-  const [role, setRole] = useState('CUSTOMER'); // 'CUSTOMER' or 'ADMIN'
+  const [role, setRole] = useState('CUSTOMER'); // 'CUSTOMER', 'EMPLOYEE', 'ADMIN'
   
   // Register specific
   const [name, setName] = useState('');
+
+  // Change Password specific
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { login, signup } = useAuth();
@@ -25,34 +32,56 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
     try {
-      if (isRegister) {
+      if (mode === 'signup') {
         await signup(name, email, password);
-        // Signup defaults to CUSTOMER role, route to customer dashboard
         navigate('/customer');
-      } else {
+      } else if (mode === 'login') {
         const user = await login(email, password, role);
         if (user.role === 'ADMIN') {
           navigate('/admin');
+        } else if (user.role === 'EMPLOYEE') {
+          navigate('/employee');
         } else {
           navigate('/customer');
         }
+      } else if (mode === 'changepassword') {
+        if (newPassword !== confirmPassword) {
+          throw new Error('New passwords do not match.');
+        }
+        await api.post('/auth/change-password', {
+          email,
+          oldPassword,
+          newPassword,
+        });
+        setSuccessMessage('Password updated successfully! You can now sign in.');
+        setMode('login');
+        // Clear change password fields
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPassword('');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed. Please check your details.');
+      setError(err.response?.data?.message || err.message || 'Authentication failed. Please check your details.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleMode = () => {
-    setIsRegister(!isRegister);
+  const handleToggleMode = (newMode) => {
+    setMode(newMode);
     setError('');
+    setSuccessMessage('');
     setEmail('');
     setPassword('');
     setName('');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
   return (
@@ -62,12 +91,24 @@ export default function Login() {
         {/* Title Block */}
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            {isRegister ? 'Create Account' : 'Ticket System'}
+            {mode === 'signup' ? 'Create Account' : mode === 'changepassword' ? 'Change Password' : 'Ticket System'}
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {isRegister ? 'Sign up to raise support tickets' : 'Sign in to access your dashboard'}
+            {mode === 'signup' 
+              ? 'Sign up to raise support tickets' 
+              : mode === 'changepassword' 
+              ? 'Provide credentials to update your password' 
+              : 'Sign in to access your dashboard'}
           </p>
         </div>
+
+        {/* Success Alert */}
+        {successMessage && (
+          <div className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 p-3 rounded-xl border border-emerald-150 dark:border-emerald-900/50 text-sm">
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <span>{successMessage}</span>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -81,7 +122,7 @@ export default function Login() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           
           {/* Role Tabs (Only for Sign In) */}
-          {!isRegister && (
+          {mode === 'login' && (
             <div>
               <label className="text-xs font-semibold text-gray-550 dark:text-gray-400 uppercase tracking-wider block mb-2">
                 Select Workspace Role
@@ -129,7 +170,7 @@ export default function Login() {
 
           <div className="space-y-4">
             {/* Name Field (Only for Sign Up) */}
-            {isRegister && (
+            {mode === 'signup' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
                   Full Name
@@ -150,7 +191,7 @@ export default function Login() {
               </div>
             )}
 
-            {/* Email Field */}
+            {/* Email Field (All Modes) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
                 Email Address
@@ -170,25 +211,93 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
-                Password
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <KeyRound className="w-5 h-5" />
+            {/* Old Password Field (Only for Change Password) */}
+            {mode === 'changepassword' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                  Old Password
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
                 </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-350 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="••••••••"
-                />
               </div>
-            </div>
+            )}
+
+            {/* Standard Password Field (Only for Sign In and Sign Up) */}
+            {(mode === 'login' || mode === 'signup') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                  Password
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* New Password Field (Only for Change Password) */}
+            {mode === 'changepassword' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                  New Password
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-350 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Confirm Password Field (Only for Change Password) */}
+            {mode === 'changepassword' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                  Rewrite New Password
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-350 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -198,24 +307,43 @@ export default function Login() {
               disabled={loading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Processing...' : isRegister ? 'Create Account' : 'Sign In'}
+              {loading ? 'Processing...' : mode === 'signup' ? 'Create Account' : mode === 'changepassword' ? 'Change Password' : 'Sign In'}
             </button>
           </div>
         </form>
 
-        {/* Toggle Mode Link */}
-        <div className="text-center pt-2">
-          <button
-            type="button"
-            onClick={handleToggleMode}
-            className="text-sm font-semibold text-indigo-650 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
-          >
-            {isRegister ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
-          </button>
+        {/* Toggle Mode Links */}
+        <div className="flex flex-col items-center space-y-2 pt-2 text-sm">
+          {mode === 'login' ? (
+            <>
+              <button
+                type="button"
+                onClick={() => handleToggleMode('signup')}
+                className="font-semibold text-indigo-650 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
+              >
+                Don't have an account? Create one
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleMode('changepassword')}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white focus:outline-none"
+              >
+                Change Password?
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleToggleMode('login')}
+              className="font-semibold text-indigo-650 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
+            >
+              Back to Sign In
+            </button>
+          )}
         </div>
 
         {/* Demo Credentials Helper (Only for Sign In) */}
-        {!isRegister && (
+        {mode === 'login' && (
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <p className="font-semibold text-gray-700 dark:text-gray-300">Demo Accounts:</p>
             <p>• Admin: <span className="font-mono">admin@example.com</span> / <span className="font-mono">admin123</span></p>

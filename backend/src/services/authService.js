@@ -120,6 +120,33 @@ class AuthService {
       throw new AppError('Invalid or expired refresh token.', 401);
     }
   }
+
+  /**
+   * Changes a user's password after verifying their old password.
+   */
+  async changePassword(email, oldPassword, newPassword) {
+    if (!email || !oldPassword || !newPassword) {
+      throw new AppError('Please provide email, old password, and new password.', 400);
+    }
+
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      throw new AppError('No user found with this email address.', 404);
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordCorrect) {
+      throw new AppError('Incorrect old password.', 401);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await userRepository.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return true;
+  }
 }
 
 module.exports = new AuthService();
