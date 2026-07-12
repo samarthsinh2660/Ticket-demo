@@ -1,130 +1,105 @@
 # Jira-Inspired Ticket Management System
 
-A full-stack ticket management application inspired by Jira, role-based access control, and modern web development practices.
+A full-stack ticket management application inspired by Jira, featuring role-based access control (RBAC), database normalization, JWT authentication with token refreshes, and interactive visualization metrics.
 
 ## Features
 
-### Customer
+### Customer Workspace
+* Register a new account (defaults to **CUSTOMER** role).
+* Create and manage support tickets.
+* Track ticket progress with detailed activity timelines.
+* View private read-only checklists for support cases.
+* Star important tickets privately for quick access.
 
-* Register and Login
-* Create and manage support tickets
-* Track ticket progress
-* View activity timeline
-* Search and filter personal tickets
+### Employee Workspace
+* View assigned support tickets.
+* Update ticket status (To Do, In Progress, Done, Closed).
+* Write and send progress comments/replies.
+* Add, check off, edit, and reorder checklists on assigned tickets.
+* Star tickets privately for quick filtering.
 
-### Employee
+### Admin Dashboard
+* **Workforce Analytics**: View workload capacity indicators represented by color-coded progress bars (Green: 0-70%, Yellow: 71-100%, Red: >100%).
+* **Overview Analytics**: Dynamic status pie charts, priority distributions, and category breakdowns using Recharts.
+* **rbac Employee Management**: CRUD panel to register new Employee/Admin accounts, assign departments, and manage user statuses.
+* **Roster Analytics Modal**: Comprehensive performance profiles for employees showcasing active lists, overdue tasks, avg resolution durations, and latest completed tasks.
+* **Global Activity Feed**: Sidebar displaying the latest logs and events.
+* **Global Tickets Board**: Complete parameter control (update status, priority, category, assignees, due dates, checklists).
 
-* View assigned tickets
-* Update ticket status
-* Add comments
-* Monitor assigned workload
-
-### Admin
-
-* Dashboard analytics
-* Employee Management (CRUD)
-* Assign tickets
-* Update priorities and due dates
-* Workforce analytics
-* Search and filtering
-
-## Ticket Features
-
-* Categories
-* Priorities
-* Status workflow
-* Due dates
-* Activity timeline
-* Dashboard charts
-* Search and filters
-* Dark/Light mode
+---
 
 ## Tech Stack
 
 ### Frontend
-
-* React
-* Vite
-* Tailwind CSS
-* React Router
-* Axios
-* Recharts
+* React, Vite, Tailwind CSS, Lucide Icons, Axios, Recharts.
 
 ### Backend
+* Node.js, Express.js, JWT, Bcrypt.js, Prisma ORM, PostgreSQL.
 
-* Node.js
-* Express.js
-
-### Database
-
-* PostgreSQL
-* Prisma ORM
-* Neon
-
-### Authentication
-
-* JWT Authentication
-* Role-Based Authorization
+---
 
 ## Project Structure
 
 ```text
-client/
-server/
+frontend/   # React client application
+backend/    # Express API server & Prisma schema
 ```
 
-The backend follows a layered architecture:
+---
 
-```text
-Routes
-   ↓
-Controllers
-   ↓
-Services
-   ↓
-Repositories
-   ↓
-Database
-```
+## Installation & Local Setup
 
-## Installation
-
-### Clone the repository
-
+### 1. Clone the repository
 ```bash
 git clone <repository-url>
 ```
 
-### Install dependencies
-
+### 2. Install dependencies
 ```bash
-cd client
+# Frontend
+cd frontend
 npm install
 
-cd ../server
+# Backend
+cd ../backend
 npm install
 ```
 
-### Configure environment variables
+### 3. Configure environment variables
+Create a `.env` file inside the `backend` directory.
 
-Create a `.env` file in the server directory.
-
-Example:
-
+Example configuration:
 ```env
-DATABASE_URL=your_neon_database_url
-JWT_SECRET=your_secret
+DATABASE_URL="postgresql://username:password@hostname:port/database"
+JWT_SECRET="your-jwt-auth-secret-key"
 PORT=5000
 ```
 
-### Run the backend
+### 4. Database Setup (Migrations & Seeding)
+
+Initialize the database schema, run the pending migrations, and seed mock data:
 
 ```bash
-npm run dev
+# From the backend directory:
+# Run Prisma Migrations
+npx prisma migrate dev
+
+# Seed Mock Data
+npx prisma db seed
 ```
 
-### Run the frontend
+*Note: The seed script hashes credentials and populates default Admin, Employee, and Customer accounts.*
+
+### 5. Launch the application
+
+Start both the backend server and client runner concurrently:
 
 ```bash
+# Start Backend (runs on http://localhost:5000)
+cd backend
+npm run dev
+
+# Start Frontend (runs on http://localhost:5173)
+cd frontend
 npm run dev
 ```
