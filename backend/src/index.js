@@ -10,12 +10,18 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Standard middleware
-// Restrict CORS to the configured frontend origin; credentials:true is required for cookies
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-}));
+const allowedOrigins = [
+  'https://ticket-demo-git-ticket-system-samarth-valas-projects.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
 
+app.use(cors({
+  origin: allowedOrigins,
+}));
 app.use(express.json());
 
 // Main application API routing

@@ -4,8 +4,6 @@ const activityLogRepository = require('../repositories/activityLogRepository');
 const AppError = require('../utils/appError');
 const prisma = require('../database');
 
-
-
 class ChecklistService {
   async getChecklist(userId, role, ticketId) {
     const id = parseInt(ticketId, 10);
