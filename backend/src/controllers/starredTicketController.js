@@ -3,7 +3,7 @@ const catchAsync = require('../utils/catchAsync');
 
 class StarredTicketController {
   starTicket = catchAsync(async (req, res, next) => {
-    const star = await starredTicketService.starTicket(req.user.id, req.params.ticketId);
+    const star = await starredTicketService.starTicket(req.user.id, req.user.role, req.params.ticketId);
 
     res.status(201).json({
       status: 'success',
@@ -14,7 +14,7 @@ class StarredTicketController {
   });
 
   unstarTicket = catchAsync(async (req, res, next) => {
-    await starredTicketService.unstarTicket(req.user.id, req.params.ticketId);
+    await starredTicketService.unstarTicket(req.user.id, req.user.role, req.params.ticketId);
 
     res.status(200).json({
       status: 'success',

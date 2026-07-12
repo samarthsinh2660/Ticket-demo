@@ -1,6 +1,7 @@
 const express = require('express');
 const employeeController = require('../controllers/employeeController');
 const { protect, restrictTo } = require('../middlewares/auth');
+const validateParams = require('../middlewares/validateParams');
 
 const router = express.Router();
 
@@ -15,8 +16,8 @@ router
 
 router
   .route('/:id')
-  .get(employeeController.getOne)
-  .patch(employeeController.update)
-  .delete(employeeController.delete);
+  .get(validateParams('id'), employeeController.getOne)
+  .patch(validateParams('id'), employeeController.update)
+  .delete(validateParams('id'), employeeController.delete);
 
 module.exports = router;

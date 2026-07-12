@@ -3,7 +3,21 @@ const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'fallback-access-secret-48h';
+if (!process.env.JWT_ACCESS_SECRET) {
+  throw new Error('FATAL: JWT_ACCESS_SECRET must be set in environment variables.');
+}
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+
+const parseCookies = (cookieHeader) => {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    if (key && value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+};
 
 /**
  * Protects routes, ensuring a valid JWT Authorization bearer token.
@@ -11,9 +25,12 @@ const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'fallback-access-secret-4
 const protect = catchAsync(async (req, res, next) => {
   let token;
 
-  // Extract bearer token from Authorization header
+  // Extract bearer token from Authorization header or cookies
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.headers.cookie) {
+    const cookies = parseCookies(req.headers.cookie);
+    token = cookies.accessToken;
   }
 
   if (!token) {

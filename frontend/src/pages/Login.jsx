@@ -214,7 +214,7 @@ export default function Login() {
             {/* Old Password Field (Only for Change Password) */}
             {mode === 'changepassword' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Old Password
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -236,7 +236,7 @@ export default function Login() {
             {/* Standard Password Field (Only for Sign In and Sign Up) */}
             {(mode === 'login' || mode === 'signup') && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Password
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -258,7 +258,7 @@ export default function Login() {
             {/* New Password Field (Only for Change Password) */}
             {mode === 'changepassword' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   New Password
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -270,7 +270,7 @@ export default function Login() {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-350 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -280,7 +280,7 @@ export default function Login() {
             {/* Confirm Password Field (Only for Change Password) */}
             {mode === 'changepassword' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-305">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Rewrite New Password
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -292,7 +292,7 @@ export default function Login() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-350 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -319,7 +319,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => handleToggleMode('signup')}
-                className="font-semibold text-indigo-650 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
+                className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
               >
                 Don't have an account? Create one
               </button>
@@ -335,7 +335,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => handleToggleMode('login')}
-              className="font-semibold text-indigo-650 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
+              className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus:outline-none"
             >
               Back to Sign In
             </button>

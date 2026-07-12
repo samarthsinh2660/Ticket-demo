@@ -1,14 +1,30 @@
 const checklistRepository = require('../repositories/checklistRepository');
 const ticketRepository = require('../repositories/ticketRepository');
 const activityLogRepository = require('../repositories/activityLogRepository');
-const AppError = require('../utils/AppError');
+const AppError = require('../utils/appError');
+const prisma = require('../database');
+
+
 
 class ChecklistService {
-  /**
-   * Fetches the checklist items for a specific ticket.
-   */
-  async getChecklist(ticketId) {
+  async getChecklist(userId, role, ticketId) {
     const id = parseInt(ticketId, 10);
+    const ticket = await ticketRepository.findUnique({
+      where: { id }
+    });
+
+    if (!ticket) {
+      throw new AppError('Ticket not found.', 404);
+    }
+
+    if (role === 'CUSTOMER' && ticket.customerId !== userId) {
+      throw new AppError('You are not authorized to view the checklist for this ticket.', 403);
+    }
+
+    if (role === 'EMPLOYEE' && ticket.assigneeId !== userId) {
+      throw new AppError('You are not authorized to view the checklist for this ticket.', 403);
+    }
+
     return await checklistRepository.findMany({
       where: { ticketId: id },
       orderBy: [
@@ -21,9 +37,6 @@ class ChecklistService {
     });
   }
 
-  /**
-   * Adds a checklist item to a ticket (Admin/Employee only).
-   */
   async addChecklistItem(userId, role, ticketId, title) {
     if (role !== 'ADMIN' && role !== 'EMPLOYEE') {
       throw new AppError('Only administrators and support staff can add checklist items.', 403);
@@ -38,45 +51,48 @@ class ChecklistService {
       throw new AppError('Ticket not found.', 404);
     }
 
+    if (role === 'EMPLOYEE' && ticket.assigneeId !== userId) {
+      throw new AppError('You are not authorized to modify the checklist for this ticket.', 403);
+    }
+
     if (!title || !title.trim()) {
       throw new AppError('Title is required.', 400);
     }
 
-    // Determine order
-    const items = await checklistRepository.findMany({
-      where: { ticketId: tId },
-      orderBy: { order: 'desc' },
-      take: 1
-    });
-    const nextOrder = items.length > 0 ? items[0].order + 1 : 0;
+    // Perform checklist create and audit log in a single atomic transaction
+    return await prisma.$transaction(async (tx) => {
+      // Determine order inside the transaction to avoid race conditions
+      const items = await tx.checklistItem.findMany({
+        where: { ticketId: tId },
+        orderBy: { order: 'desc' },
+        take: 1,
+      });
+      const nextOrder = items.length > 0 ? items[0].order + 1 : 0;
 
-    const newItem = await checklistRepository.create({
-      data: {
-        ticketId: tId,
-        title: title.trim(),
-        completed: false,
-        order: nextOrder
-      }
-    });
+      const newItem = await tx.checklistItem.create({
+        data: {
+          ticketId: tId,
+          title: title.trim(),
+          completed: false,
+          order: nextOrder,
+        },
+      });
 
-    // Save audit log
-    await activityLogRepository.create({
-      data: {
-        ticketId: tId,
-        userId,
-        action: 'Checklist Updated',
-        details: `Added checklist item: "${title.trim()}"`,
-        previousValue: null,
-        newValue: title.trim()
-      }
-    });
+      await tx.activityLog.create({
+        data: {
+          ticketId: tId,
+          userId,
+          action: 'Checklist Updated',
+          details: `Added checklist item: "${title.trim()}"`,
+          previousValue: null,
+          newValue: title.trim(),
+        },
+      });
 
-    return newItem;
+      return newItem;
+    });
   }
 
-  /**
-   * Updates a checklist item (Admin/Employee only).
-   */
   async updateChecklistItem(userId, role, itemId, data) {
     if (role !== 'ADMIN' && role !== 'EMPLOYEE') {
       throw new AppError('Only administrators and support staff can update checklist items.', 403);
@@ -89,6 +105,18 @@ class ChecklistService {
 
     if (!item) {
       throw new AppError('Checklist item not found.', 404);
+    }
+
+    const ticket = await ticketRepository.findUnique({
+      where: { id: item.ticketId }
+    });
+
+    if (!ticket) {
+      throw new AppError('Ticket not found.', 404);
+    }
+
+    if (role === 'EMPLOYEE' && ticket.assigneeId !== userId) {
+      throw new AppError('You are not authorized to modify the checklist for this ticket.', 403);
     }
 
     const updateData = {};
@@ -113,39 +141,40 @@ class ChecklistService {
       }
     }
 
-    const updatedItem = await checklistRepository.update({
-      where: { id },
-      data: updateData,
-      include: {
-        completedBy: { select: { id: true, name: true, role: true } }
-      }
-    });
+    const updatedItem = await prisma.$transaction(async (tx) => {
+      const result = await tx.checklistItem.update({
+        where: { id },
+        data: updateData,
+        include: {
+          completedBy: { select: { id: true, name: true, role: true } },
+        },
+      });
 
-    // Save audit log
-    let details = `Updated checklist item "${updatedItem.title}"`;
-    if (data.completed !== undefined && data.completed !== previousState.completed) {
-      details = data.completed
-        ? `Marked checklist item "${updatedItem.title}" as completed`
-        : `Marked checklist item "${updatedItem.title}" as pending`;
-    }
-
-    await activityLogRepository.create({
-      data: {
-        ticketId: item.ticketId,
-        userId,
-        action: 'Checklist Updated',
-        details,
-        previousValue: previousState.completed ? 'Completed' : 'Pending',
-        newValue: updatedItem.completed ? 'Completed' : 'Pending'
+      // Save audit log
+      let details = `Updated checklist item "${result.title}"`;
+      if (data.completed !== undefined && data.completed !== previousState.completed) {
+        details = data.completed
+          ? `Marked checklist item "${result.title}" as completed`
+          : `Marked checklist item "${result.title}" as pending`;
       }
+
+      await tx.activityLog.create({
+        data: {
+          ticketId: item.ticketId,
+          userId,
+          action: 'Checklist Updated',
+          details,
+          previousValue: previousState.completed ? 'Completed' : 'Pending',
+          newValue: result.completed ? 'Completed' : 'Pending',
+        },
+      });
+
+      return result;
     });
 
     return updatedItem;
   }
 
-  /**
-   * Deletes a checklist item (Admin/Employee only).
-   */
   async deleteChecklistItem(userId, role, itemId) {
     if (role !== 'ADMIN' && role !== 'EMPLOYEE') {
       throw new AppError('Only administrators and support staff can delete checklist items.', 403);
@@ -160,20 +189,32 @@ class ChecklistService {
       throw new AppError('Checklist item not found.', 404);
     }
 
-    await checklistRepository.delete({
-      where: { id }
+    const ticket = await ticketRepository.findUnique({
+      where: { id: item.ticketId }
     });
 
-    // Save audit log
-    await activityLogRepository.create({
-      data: {
-        ticketId: item.ticketId,
-        userId,
-        action: 'Checklist Updated',
-        details: `Deleted checklist item: "${item.title}"`,
-        previousValue: item.title,
-        newValue: null
-      }
+    if (!ticket) {
+      throw new AppError('Ticket not found.', 404);
+    }
+
+    if (role === 'EMPLOYEE' && ticket.assigneeId !== userId) {
+      throw new AppError('You are not authorized to modify the checklist for this ticket.', 403);
+    }
+
+    // Delete item and write audit log atomically
+    await prisma.$transaction(async (tx) => {
+      await tx.checklistItem.delete({ where: { id } });
+
+      await tx.activityLog.create({
+        data: {
+          ticketId: item.ticketId,
+          userId,
+          action: 'Checklist Updated',
+          details: `Deleted checklist item: "${item.title}"`,
+          previousValue: item.title,
+          newValue: null,
+        },
+      });
     });
 
     return true;

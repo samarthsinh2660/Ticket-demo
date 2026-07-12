@@ -6,8 +6,13 @@ const jwt = require('jsonwebtoken');
 const ACCESS_TOKEN_EXPIRES = '48h';
 const REFRESH_TOKEN_EXPIRES = '7d';
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'fallback-access-secret-48h';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-7d';
+if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  throw new Error('FATAL: JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set in environment variables.');
+}
+
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
 
 class AuthService {
   generateAccessToken(user) {
@@ -105,18 +110,21 @@ class AuthService {
 
     try {
       const decoded = jwt.verify(token, REFRESH_SECRET);
-      
+
       const user = await userRepository.findUnique({
         where: { id: decoded.id },
       });
 
       if (!user) {
-        throw new AppError('The user belonging to this token no longer exists.', 401);
+        // User was deleted — surface a distinct error, not the generic token message
+        throw new AppError('The account associated with this token no longer exists. Please sign in again.', 401);
       }
 
       const accessToken = this.generateAccessToken(user);
       return { accessToken };
     } catch (err) {
+      // Re-throw AppErrors as-is; only wrap unexpected JWT errors in a generic message
+      if (err instanceof AppError) throw err;
       throw new AppError('Invalid or expired refresh token.', 401);
     }
   }

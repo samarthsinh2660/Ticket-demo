@@ -21,7 +21,7 @@ export default function Navbar({ title, searchVal, setSearchVal }) {
               placeholder="Search by title, desc, TCK..."
               value={searchVal || ''}
               onChange={(e) => setSearchVal(e.target.value)}
-              className="block w-full pl-9 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-250 dark:border-gray-650 rounded-xl dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full pl-9 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
         )}

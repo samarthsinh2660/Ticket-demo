@@ -331,7 +331,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 setError('');
                 setSuccess('');
               }}
-              className="px-4 py-2 border border-gray-250 dark:border-gray-655 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-850"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancel
             </button>

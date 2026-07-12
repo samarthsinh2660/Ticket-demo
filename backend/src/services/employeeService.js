@@ -2,6 +2,7 @@ const userRepository = require('../repositories/userRepository');
 const ticketRepository = require('../repositories/ticketRepository');
 const AppError = require('../utils/appError');
 const bcrypt = require('bcryptjs');
+const prisma = require('../database');
 
 class EmployeeService {
   /**
@@ -9,134 +10,152 @@ class EmployeeService {
    * Computes counts for assigned, open, and completed tickets.
    */
   async getEmployees(query = {}) {
-    const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
+    const page = Math.max(1, parseInt(query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 10)); // cap at 100
+    const offset = (page - 1) * limit;
 
-    const where = {
-      role: { in: ['EMPLOYEE', 'ADMIN'] },
-    };
+
+    const sqlFilters = ["u.role IN ('EMPLOYEE', 'ADMIN')"];
+    const sqlParams = [];
 
     // Filters
     if (query.role) {
-      where.role = query.role;
+      sqlParams.push(query.role);
+      sqlFilters.push(`u.role = $${sqlParams.length}`);
     }
     if (query.status) {
-      where.status = query.status;
+      sqlParams.push(query.status);
+      sqlFilters.push(`u.status = $${sqlParams.length}`);
     }
     if (query.department) {
-      where.department = { contains: query.department, mode: 'insensitive' };
+      sqlParams.push(`%${query.department}%`);
+      sqlFilters.push(`u.department ILIKE $${sqlParams.length}`);
     }
 
     // Search by name, email, department
     if (query.search) {
-      const searchPattern = query.search;
-      where.OR = [
-        { name: { contains: searchPattern, mode: 'insensitive' } },
-        { email: { contains: searchPattern, mode: 'insensitive' } },
-        { department: { contains: searchPattern, mode: 'insensitive' } },
-      ];
+      sqlParams.push(`%${query.search}%`);
+      sqlFilters.push(`(u.name ILIKE $${sqlParams.length} OR u.email ILIKE $${sqlParams.length} OR u.department ILIKE $${sqlParams.length})`);
     }
 
-    // Fetch ALL matching users (to sort in memory correctly)
-    const employees = await userRepository.findMany({
-      where,
-      include: {
-        ticketsAssigned: {
-          select: {
-            id: true,
-            status: true,
-            updatedAt: true,
-            createdAt: true,
-            dueDate: true,
-          },
-        },
-      },
-    });
+    const whereClause = sqlFilters.join(' AND ');
 
-    const now = new Date();
+    // Determine sorting column — strict whitelist to prevent SQL injection in raw query
+    const ALLOWED_SORT_KEYS = ['workload', 'completionRate', 'overdueCount', 'lastActivity', 'name', 'email', 'department', 'createdAt'];
+    if (query.sortBy && !ALLOWED_SORT_KEYS.includes(query.sortBy)) {
+      throw new AppError(`Invalid sortBy value. Permitted: ${ALLOWED_SORT_KEYS.join(', ')}`, 400);
+    }
+
+    let sortColumn = 'u."createdAt"';
+
+    if (query.sortBy === 'workload') {
+      sortColumn = 'COUNT(t.id) FILTER (WHERE t.status != \'DONE\' AND t.status != \'CLOSED\')';
+    } else if (query.sortBy === 'completionRate') {
+      sortColumn = 'CASE WHEN COUNT(t.id) > 0 THEN (COUNT(t.id) FILTER (WHERE t.status = \'DONE\' OR t.status = \'CLOSED\')::float / COUNT(t.id)) * 100 ELSE 0 END';
+    } else if (query.sortBy === 'overdueCount') {
+      sortColumn = 'COUNT(t.id) FILTER (WHERE t.status != \'DONE\' AND t.status != \'CLOSED\' AND t."dueDate" IS NOT NULL AND t."dueDate" < NOW())';
+    } else if (query.sortBy === 'lastActivity') {
+      sortColumn = 'COALESCE(MAX(t."updatedAt"), u."createdAt")';
+    } else if (query.sortBy === 'name') {
+      sortColumn = 'u.name';
+    } else if (query.sortBy === 'email') {
+      sortColumn = 'u.email';
+    } else if (query.sortBy === 'department') {
+      sortColumn = 'u.department';
+    }
+    const sortOrder = query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(DISTINCT u.id)::int as total
+      FROM users u
+      LEFT JOIN tickets t ON t."assigneeId" = u.id
+      WHERE ${whereClause}
+    `;
+    const countResults = await prisma.$queryRawUnsafe(countQuery, ...sqlParams);
+    const totalCount = countResults[0]?.total || 0;
+
+    // Fetch data query
+    const dataQuery = `
+      SELECT 
+        u.id, 
+        u.name, 
+        u.email, 
+        u.role, 
+        u.department, 
+        u.status, 
+        u."createdAt", 
+        u."updatedAt",
+        COUNT(t.id)::int AS "assignedTicketsCount",
+        COUNT(t.id) FILTER (WHERE t.status != 'DONE' AND t.status != 'CLOSED')::int AS "openTicketsCount",
+        COUNT(t.id) FILTER (WHERE t.status = 'DONE' OR t.status = 'CLOSED')::int AS "completedTicketsCount",
+        COUNT(t.id) FILTER (WHERE t.status = 'TO_DO')::int AS "todoTicketsCount",
+        COUNT(t.id) FILTER (WHERE t.status = 'IN_PROGRESS')::int AS "inProgressTicketsCount",
+        COUNT(t.id) FILTER (WHERE t.status = 'CLOSED')::int AS "closedTicketsCount",
+        COUNT(t.id) FILTER (WHERE t.status != 'DONE' AND t.status != 'CLOSED' AND t."dueDate" IS NOT NULL AND t."dueDate" < NOW())::int AS "overdueCount",
+        (
+          SELECT json_build_object(
+            'id', lt.id, 
+            'ticketNumber', lt."ticketNumber", 
+            'title', lt.title, 
+            'updatedAt', lt."updatedAt"
+          )
+          FROM tickets lt
+          WHERE lt."assigneeId" = u.id AND (lt.status = 'DONE' OR lt.status = 'CLOSED')
+          ORDER BY lt."updatedAt" DESC
+          LIMIT 1
+        ) AS "lastCompletedTicket",
+        COALESCE(
+          (
+            SELECT ROUND(AVG(EXTRACT(EPOCH FROM (rt."updatedAt" - rt."createdAt")) / 3600))::int
+            FROM tickets rt
+            WHERE rt."assigneeId" = u.id AND (rt.status = 'DONE' OR rt.status = 'CLOSED')
+          ),
+          0
+        ) AS "avgResolutionTime",
+        COALESCE(MAX(t."updatedAt"), u."createdAt") AS "lastActivity"
+      FROM users u
+      LEFT JOIN tickets t ON t."assigneeId" = u.id
+      WHERE ${whereClause}
+      GROUP BY u.id, u.name, u.email, u.role, u.department, u.status, u."createdAt", u."updatedAt"
+      ORDER BY ${sortColumn} ${sortOrder}
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const rawEmployees = await prisma.$queryRawUnsafe(dataQuery, ...sqlParams);
 
     // Format metrics
-    const formattedEmployees = employees.map((emp) => {
-      const tickets = emp.ticketsAssigned || [];
-      const assignedCount = tickets.length;
-      const openCount = tickets.filter(t => t.status !== 'DONE' && t.status !== 'CLOSED').length;
-      const completedTickets = tickets.filter(t => t.status === 'DONE' || t.status === 'CLOSED');
-      const completedCount = completedTickets.length;
-      const inProgressCount = tickets.filter(t => t.status === 'IN_PROGRESS').length;
-      const todoCount = tickets.filter(t => t.status === 'TO_DO').length;
-      const closedCount = tickets.filter(t => t.status === 'CLOSED').length;
-
-      // Overdue tickets count
-      const overdueCount = tickets.filter(t => t.status !== 'DONE' && t.status !== 'CLOSED' && t.dueDate && new Date(t.dueDate) < now).length;
-
-      // Average Resolution Time (in hours)
-      let avgResolutionTime = 0;
-      if (completedTickets.length > 0) {
-        const totalDuration = completedTickets.reduce((sum, t) => {
-          return sum + (new Date(t.updatedAt) - new Date(t.createdAt));
-        }, 0);
-        avgResolutionTime = Math.round((totalDuration / completedTickets.length) / (1000 * 60 * 60));
-      }
-
-      // Last Completed Ticket
-      const lastCompletedTicket = completedTickets.reduce((latest, t) => {
-        return !latest || t.updatedAt > latest.updatedAt ? t : latest;
-      }, null);
-
-      // Last Ticket Update (last activity)
-      const lastTicketUpdate = tickets.reduce((latest, t) => {
-        return !latest || t.updatedAt > latest ? t.updatedAt : latest;
-      }, null);
-
+    const formattedEmployees = rawEmployees.map((emp) => {
+      const assignedCount = emp.assignedTicketsCount || 0;
+      const completedCount = emp.completedTicketsCount || 0;
       const completionRate = assignedCount > 0 ? Math.round((completedCount / assignedCount) * 100) : 0;
 
-      const { password: _, ...employeeProfile } = emp;
-
       return {
-        ...employeeProfile,
+        id: emp.id,
+        name: emp.name,
+        email: emp.email,
+        role: emp.role,
+        department: emp.department,
+        status: emp.status,
+        createdAt: emp.createdAt,
+        updatedAt: emp.updatedAt,
         assignedTicketsCount: assignedCount,
-        openTicketsCount: openCount,
-        todoTicketsCount: todoCount,
-        inProgressTicketsCount: inProgressCount,
+        openTicketsCount: emp.openTicketsCount || 0,
+        todoTicketsCount: emp.todoTicketsCount || 0,
+        inProgressTicketsCount: emp.inProgressTicketsCount || 0,
         completedTicketsCount: completedCount,
-        closedTicketsCount: closedCount,
-        workload: openCount, // raw open tickets count
+        closedTicketsCount: emp.closedTicketsCount || 0,
+        workload: emp.openTicketsCount || 0, // raw open tickets count
         completionRate,
-        avgResolutionTime,
-        overdueCount,
-        lastCompletedTicket: lastCompletedTicket ? { id: lastCompletedTicket.id, ticketNumber: lastCompletedTicket.ticketNumber, title: lastCompletedTicket.title, updatedAt: lastCompletedTicket.updatedAt } : null,
-        lastActivity: lastTicketUpdate || emp.createdAt,
+        avgResolutionTime: emp.avgResolutionTime || 0,
+        overdueCount: emp.overdueCount || 0,
+        lastCompletedTicket: emp.lastCompletedTicket || null,
+        lastActivity: emp.lastActivity,
       };
     });
 
-    // In-memory Sorting
-    const sortBy = query.sortBy || 'createdAt';
-    const sortOrder = query.sortOrder || 'desc';
-
-    formattedEmployees.sort((a, b) => {
-      let valA = a[sortBy];
-      let valB = b[sortBy];
-
-      if (valA === undefined || valA === null) valA = 0;
-      if (valB === undefined || valB === null) valB = 0;
-
-      if (typeof valA === 'string') {
-        return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      } else if (valA instanceof Date || (typeof valA === 'string' && !isNaN(Date.parse(valA)))) {
-        const timeA = new Date(valA).getTime();
-        const timeB = new Date(valB).getTime();
-        return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
-      } else {
-        return sortOrder === 'asc' ? valA - valB : valB - valA;
-      }
-    });
-
-    const totalCount = formattedEmployees.length;
-    const paginatedEmployees = formattedEmployees.slice(skip, skip + limit);
-
     return {
-      employees: paginatedEmployees,
+      employees: formattedEmployees,
       totalCount,
       page,
       limit,

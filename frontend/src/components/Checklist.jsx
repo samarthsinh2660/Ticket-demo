@@ -284,7 +284,7 @@ export default function Checklist({ ticketId, readOnly = false }) {
             value={newItemTitle}
             onChange={(e) => setNewItemTitle(e.target.value)}
             disabled={loading}
-            className="flex-1 px-3 py-2 border border-gray-250 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
             placeholder="Add task to checklist..."
           />
           <button

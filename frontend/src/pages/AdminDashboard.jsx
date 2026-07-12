@@ -611,12 +611,12 @@ export default function AdminDashboard() {
           {activeTab === 'board' && (
             <div className="space-y-6 animate-fadeIn">
               {/* Filter controls panel */}
-              <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm text-sm transition-colors">
+              <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm text-sm transition-colors">
                 <div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="">All Statuses</option>
                     <option value="TO_DO">To Do</option>
@@ -630,7 +630,7 @@ export default function AdminDashboard() {
                   <select
                     value={priorityFilter}
                     onChange={(e) => setStatusPriority(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="">All Priorities</option>
                     <option value="LOW">Low</option>
@@ -644,7 +644,7 @@ export default function AdminDashboard() {
                   <select
                     value={categoryFilter}
                     onChange={(e) => setStatusCategory(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="">All Categories</option>
                     <option value="BUG">Bug</option>
@@ -660,7 +660,7 @@ export default function AdminDashboard() {
                   <select
                     value={assigneeFilter}
                     onChange={(e) => setAssigneeFilter(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                    className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
                   >
                     <option value="">All Assignees</option>
                     <option value="null">Unassigned</option>
@@ -714,7 +714,7 @@ export default function AdminDashboard() {
                         setEmployeeSearch(e.target.value);
                         setEmployeePage(1);
                       }}
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-850 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                     <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                   </div>
@@ -727,7 +727,7 @@ export default function AdminDashboard() {
                         setEmployeeFilterRole(e.target.value);
                         setEmployeePage(1);
                       }}
-                      className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                      className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="">All Roles</option>
                       <option value="EMPLOYEE">Staff (EMPLOYEE)</option>
@@ -743,7 +743,7 @@ export default function AdminDashboard() {
                         setEmployeeFilterStatus(e.target.value);
                         setEmployeePage(1);
                       }}
-                      className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                      className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="">All Statuses</option>
                       <option value="ACTIVE">Active</option>
@@ -761,7 +761,7 @@ export default function AdminDashboard() {
                         setEmployeeFilterDept(e.target.value);
                         setEmployeePage(1);
                       }}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-850 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
 
@@ -1010,11 +1010,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-555 dark:text-gray-400">Category</label>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">Category</label>
                   <select
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-350 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="BUG">Bug</option>
                     <option value="FEATURE_REQUEST">Feature Request</option>
@@ -1026,11 +1026,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-555 dark:text-gray-400">Assign To</label>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">Assign To</label>
                   <select
                     value={editAssigneeId}
                     onChange={(e) => setEditAssigneeId(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-355 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="">Unassigned</option>
                     {users.map((u) => (
@@ -1042,12 +1042,12 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-555 dark:text-gray-400">Due Date</label>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">Due Date</label>
                   <input
                     type="date"
                     value={editDueDate}
                     onChange={(e) => setEditDueDate(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-355 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -1177,7 +1177,7 @@ export default function AdminDashboard() {
                   type="text"
                   value={createEmpDept}
                   onChange={(e) => setCreateEmpDept(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-605 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   placeholder="Engineering"
                 />
               </div>
@@ -1188,7 +1188,7 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() => setIsCreateEmployeeOpen(false)}
-              className="px-4 py-2 border border-gray-250 dark:border-gray-655 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-850"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancel
             </button>
@@ -1292,7 +1292,7 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() => setIsEditEmployeeOpen(false)}
-              className="px-4 py-2 border border-gray-250 dark:border-gray-655 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-850"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancel
             </button>
@@ -1383,7 +1383,7 @@ export default function AdminDashboard() {
                 <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
                   {detailedEmployee.stats.lastCompletedTicket.ticketNumber}
                 </span>{' '}
-                - <span className="font-medium text-gray-850 dark:text-gray-205">{detailedEmployee.stats.lastCompletedTicket.title}</span>{' '}
+                - <span className="font-medium text-gray-800 dark:text-gray-200">{detailedEmployee.stats.lastCompletedTicket.title}</span>{' '}
                 <span className="text-gray-405 dark:text-gray-500">
                   (resolved {new Date(detailedEmployee.stats.lastCompletedTicket.updatedAt).toLocaleDateString()})
                 </span>
@@ -1394,14 +1394,14 @@ export default function AdminDashboard() {
             <div className="space-y-2">
               <h5 className="font-bold text-gray-800 dark:text-gray-300">Active Assigned Tickets</h5>
               {detailedEmployee.currentTickets.length === 0 ? (
-                <p className="text-xs text-gray-450 dark:text-gray-500 italic">No active tickets assigned.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 italic">No active tickets assigned.</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {detailedEmployee.currentTickets.map(t => (
-                    <div key={t.id} className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-850 rounded-xl border border-gray-100 dark:border-gray-750">
+                    <div key={t.id} className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                       <div>
-                        <span className="font-bold text-xs text-indigo-650 dark:text-indigo-400 font-mono mr-2">{t.ticketNumber}</span>
-                        <span className="font-semibold text-gray-800 dark:text-gray-250 text-xs">{t.title}</span>
+                        <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400 font-mono mr-2">{t.ticketNumber}</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200 text-xs">{t.title}</span>
                       </div>
                       <StatusBadge status={t.status} />
                     </div>
@@ -1414,14 +1414,14 @@ export default function AdminDashboard() {
             <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
               <h5 className="font-bold text-gray-800 dark:text-gray-300">Recently Completed</h5>
               {detailedEmployee.recentCompletedTickets.length === 0 ? (
-                <p className="text-xs text-gray-450 dark:text-gray-500 italic">No tickets recently completed.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 italic">No tickets recently completed.</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {detailedEmployee.recentCompletedTickets.map(t => (
-                    <div key={t.id} className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-850 rounded-xl border border-gray-100 dark:border-gray-750">
+                    <div key={t.id} className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                       <div>
-                        <span className="font-bold text-xs text-indigo-650 dark:text-indigo-400 font-mono mr-2">{t.ticketNumber}</span>
-                        <span className="font-semibold text-gray-800 dark:text-gray-250 text-xs">{t.title}</span>
+                        <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400 font-mono mr-2">{t.ticketNumber}</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-205 text-xs">{t.title}</span>
                       </div>
                       <span className="text-[10px] text-gray-400">Done: {new Date(t.updatedAt).toLocaleDateString()}</span>
                     </div>

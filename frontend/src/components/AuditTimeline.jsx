@@ -46,10 +46,10 @@ export default function AuditTimeline({ activityLogs = [] }) {
 
   return (
     <div className="space-y-4">
-      <h5 className="text-sm font-bold text-gray-805 dark:text-gray-300">Ticket Activity History</h5>
+      <h5 className="text-sm font-bold text-gray-800 dark:text-gray-300">Ticket Activity History</h5>
       
       {/* Vertical Timeline container */}
-      <div className="relative border-l border-gray-150 dark:border-gray-800 pl-4 ml-2.5 space-y-5 py-2">
+      <div className="relative border-l border-gray-200 dark:border-gray-800 pl-4 ml-2.5 space-y-5 py-2">
         {activityLogs.map((log) => {
           const hasTransitions = log.previousValue !== null && log.newValue !== null;
           
@@ -57,7 +57,7 @@ export default function AuditTimeline({ activityLogs = [] }) {
             <div key={log.id} className="relative group text-xs">
               
               {/* Timeline Bullet Dot */}
-              <div className="absolute -left-[23.5px] top-0.5 p-1 bg-white dark:bg-gray-850 rounded-full border border-gray-150 dark:border-gray-800 flex items-center justify-center transition-colors">
+              <div className="absolute -left-[23.5px] top-0.5 p-1 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-800 flex items-center justify-center transition-colors">
                 {getActionIcon(log.action)}
               </div>
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const checklistController = require('../controllers/checklistController');
 const { protect } = require('../middlewares/auth');
+const validateParams = require('../middlewares/validateParams');
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ router.use(protect);
 
 router
   .route('/:id')
-  .patch(checklistController.updateChecklistItem)
-  .delete(checklistController.deleteChecklistItem);
+  .patch(validateParams('id'), checklistController.updateChecklistItem)
+  .delete(validateParams('id'), checklistController.deleteChecklistItem);
 
 module.exports = router;

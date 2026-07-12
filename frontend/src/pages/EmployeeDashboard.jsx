@@ -144,7 +144,7 @@ export default function EmployeeDashboard() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-650 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">All Statuses</option>
                   <option value="TO_DO">To Do</option>
@@ -158,7 +158,7 @@ export default function EmployeeDashboard() {
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">All Priorities</option>
                   <option value="LOW">Low</option>
@@ -172,7 +172,7 @@ export default function EmployeeDashboard() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-655 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">All Categories</option>
                   <option value="BUG">Bug</option>
@@ -185,7 +185,7 @@ export default function EmployeeDashboard() {
               </div>
             </div>
 
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-xl border border-gray-100 dark:border-gray-750">
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-xl border border-gray-100 dark:border-gray-700">
               Total Assigned: {tickets.length}
             </div>
           </div>

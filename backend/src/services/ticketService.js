@@ -1,7 +1,9 @@
 const ticketRepository = require('../repositories/ticketRepository');
 const activityLogRepository = require('../repositories/activityLogRepository');
+const userRepository = require('../repositories/userRepository');
 const AppError = require('../utils/appError');
 const { validateCreateTicket, validateUpdateTicket } = require('../validators/ticketValidator');
+const prisma = require('../database');
 
 class TicketService {
   /**
@@ -10,31 +12,48 @@ class TicketService {
   async createTicket(customerId, role, data) {
     validateCreateTicket(data);
 
-    // Generate unique readable ticket number based on count
-    const count = await ticketRepository.count();
-    const ticketNumber = `TCK-${1000 + count + 1}`;
+    // Execute creation and activity log in a single transaction block for database atomicity
+    const ticket = await prisma.$transaction(async (tx) => {
+      // Create the ticket with a temporary unique value to satisfy the unique constraint
+      const tempTicketNumber = `TEMP-${Date.now()}-${Math.random()}`;
+      
+      const newTicket = await tx.ticket.create({
+        data: {
+          ticketNumber: tempTicketNumber,
+          title: data.title,
+          description: data.description,
+          category: data.category,
+          priority: data.priority || 'MEDIUM',
+          status: 'TO_DO',
+          customerId,
+          dueDate: data.dueDate ? (() => {
+            const d = new Date(data.dueDate);
+            if (isNaN(d.getTime())) throw new AppError('Invalid dueDate value.', 400);
+            return d;
+          })() : null,
 
-    const ticket = await ticketRepository.create({
-      data: {
-        ticketNumber,
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        priority: data.priority || 'MEDIUM',
-        status: 'TO_DO',
-        customerId,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-      },
-    });
+        },
+      });
 
-    // Save ticket creation log
-    await activityLogRepository.create({
-      data: {
-        ticketId: ticket.id,
-        userId: customerId,
-        action: 'Ticket Created',
-        details: `Ticket created under category: ${data.category}`,
-      },
+      // Update the ticket number using the actual autoincremented database primary key ID
+      const ticketNumber = `TCK-${1000 + newTicket.id}`;
+      
+      const updatedTicket = await tx.ticket.update({
+        where: { id: newTicket.id },
+        data: { ticketNumber },
+      });
+
+      // Create the activity log
+      await tx.activityLog.create({
+        data: {
+          ticketId: updatedTicket.id,
+          userId: customerId,
+          action: 'Ticket Created',
+          details: `Ticket created under category: ${data.category}`,
+        },
+      });
+
+      return updatedTicket;
     });
 
     return ticket;
@@ -49,20 +68,33 @@ class TicketService {
     // Customer filters: Can only retrieve own tickets
     if (role === 'CUSTOMER') {
       where.customerId = userId;
+      // Customers cannot filter by assigneeId — that leaks internal employee data
+    } else if (role === 'EMPLOYEE') {
+
+      // Employee filters: Can ONLY retrieve tickets assigned to themselves
+      where.assigneeId = userId;
+    } else if (query.assigneeId) {
+      // Admins or other roles can query by assigneeId
+      where.assigneeId = query.assigneeId === 'null' ? null : parseInt(query.assigneeId, 10);
     }
 
-    // Employee filters: Can only retrieve assigned tickets
-    if (role === 'EMPLOYEE') {
-      where.assigneeId = userId;
+    // Validate enum query filters to avoid raw Prisma validation errors
+    const { TICKET_STATUS, TICKET_PRIORITY, TICKET_CATEGORY } = require('../constants');
+    if (query.status && !Object.values(TICKET_STATUS).includes(query.status)) {
+      throw new AppError(`Invalid status filter. Permitted: ${Object.values(TICKET_STATUS).join(', ')}`, 400);
+    }
+    if (query.priority && !Object.values(TICKET_PRIORITY).includes(query.priority)) {
+      throw new AppError(`Invalid priority filter. Permitted: ${Object.values(TICKET_PRIORITY).join(', ')}`, 400);
+    }
+    if (query.category && !Object.values(TICKET_CATEGORY).includes(query.category)) {
+      throw new AppError(`Invalid category filter. Permitted: ${Object.values(TICKET_CATEGORY).join(', ')}`, 400);
     }
 
     // Direct attribute filters
     if (query.status) where.status = query.status;
     if (query.priority) where.priority = query.priority;
     if (query.category) where.category = query.category;
-    if (query.assigneeId) {
-      where.assigneeId = query.assigneeId === 'null' ? null : parseInt(query.assigneeId, 10);
-    }
+
     if (query.customerId && role === 'ADMIN') {
       where.customerId = parseInt(query.customerId, 10);
     }
@@ -129,8 +161,8 @@ class TicketService {
    * Updates an existing ticket and logs details.
    */
   async updateTicket(userId, role, id, data) {
-    console.log('updateTicket method called:', { userId, role, id, data });
     validateUpdateTicket(data);
+
 
     const ticket = await ticketRepository.findUnique({
       where: { id },
@@ -171,7 +203,17 @@ class TicketService {
         });
       }
       if (data.assigneeId !== undefined && data.assigneeId !== ticket.assigneeId) {
-        updateData.assigneeId = data.assigneeId ? parseInt(data.assigneeId, 10) : null;
+        const newAssigneeId = data.assigneeId ? parseInt(data.assigneeId, 10) : null;
+        if (newAssigneeId !== null) {
+          const assigneeUser = await userRepository.findUnique({ where: { id: newAssigneeId } });
+          if (!assigneeUser) {
+            throw new AppError('Assignee user not found.', 400);
+          }
+          if (assigneeUser.role === 'CUSTOMER') {
+            throw new AppError('Cannot assign tickets to a customer account.', 400);
+          }
+        }
+        updateData.assigneeId = newAssigneeId;
         logs.push({
           action: 'Ticket Assigned',
           details: data.assigneeId ? `Assigned to user ID ${data.assigneeId}` : 'Unassigned',
@@ -184,7 +226,12 @@ class TicketService {
         const formattedTicketDate = ticket.dueDate ? new Date(ticket.dueDate).toISOString().substring(0, 10) : null;
         
         if (formattedDataDate !== formattedTicketDate) {
-          updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+          const parsedDue = data.dueDate ? new Date(data.dueDate) : null;
+          if (data.dueDate && isNaN(parsedDue.getTime())) {
+            throw new AppError('Invalid dueDate value.', 400);
+          }
+          updateData.dueDate = parsedDue;
+
           logs.push({
             action: 'Due Date Changed',
             details: data.dueDate ? `Due date set to ${formattedDataDate}` : 'Due date removed',
@@ -216,8 +263,8 @@ class TicketService {
         logs.push({
           action: 'Ticket Updated',
           details: `Description updated`,
-          previousValue: 'Updated',
-          newValue: 'Updated',
+          previousValue: ticket.description,
+          newValue: data.description,
         });
       }
 
@@ -283,8 +330,8 @@ class TicketService {
           logs.push({
             action: 'Ticket Updated',
             details: `Description updated`,
-            previousValue: 'Updated',
-            newValue: 'Updated',
+            previousValue: ticket.description,
+            newValue: data.description,
           });
         }
         if (data.category && data.category !== ticket.category) {
@@ -308,31 +355,34 @@ class TicketService {
       }
     }
 
-    console.log('updateData computed:', updateData, 'logs:', logs);
-
-    const updatedTicket = await ticketRepository.update({
-      where: { id },
-      data: updateData,
-      include: {
-        customer: { select: { id: true, name: true, email: true } },
-        assignee: { select: { id: true, name: true, email: true } },
-        starredBy: { where: { userId } },
-      },
-    });
-
-    // Save all logs to db
-    for (const log of logs) {
-      await activityLogRepository.create({
-        data: {
-          ticketId: id,
-          userId,
-          action: log.action,
-          details: log.details,
-          previousValue: log.previousValue !== undefined && log.previousValue !== null ? String(log.previousValue) : null,
-          newValue: log.newValue !== undefined && log.newValue !== null ? String(log.newValue) : null,
+    // Perform database update and activity log creation in a single transaction block for database atomicity
+    const updatedTicket = await prisma.$transaction(async (tx) => {
+      const updated = await tx.ticket.update({
+        where: { id },
+        data: updateData,
+        include: {
+          customer: { select: { id: true, name: true, email: true } },
+          assignee: { select: { id: true, name: true, email: true } },
+          starredBy: { where: { userId } },
         },
       });
-    }
+
+      // Insert all activity logs atomically using createMany for performance
+      if (logs.length > 0) {
+        await tx.activityLog.createMany({
+          data: logs.map((log) => ({
+            ticketId: id,
+            userId,
+            action: log.action,
+            details: log.details,
+            previousValue: log.previousValue !== undefined && log.previousValue !== null ? String(log.previousValue) : null,
+            newValue: log.newValue !== undefined && log.newValue !== null ? String(log.newValue) : null,
+          })),
+        });
+      }
+
+      return updated;
+    });
 
     return updatedTicket;
   }

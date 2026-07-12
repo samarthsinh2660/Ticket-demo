@@ -1,13 +1,14 @@
 const starredTicketRepository = require('../repositories/starredTicketRepository');
 const ticketRepository = require('../repositories/ticketRepository');
 const activityLogRepository = require('../repositories/activityLogRepository');
-const AppError = require('../utils/AppError');
+const AppError = require('../utils/appError');
+
 
 class StarredTicketService {
   /**
    * Stars a ticket privately for the user.
    */
-  async starTicket(userId, ticketId) {
+  async starTicket(userId, role, ticketId) {
     const tId = parseInt(ticketId, 10);
     const ticket = await ticketRepository.findUnique({
       where: { id: tId }
@@ -15,6 +16,14 @@ class StarredTicketService {
 
     if (!ticket) {
       throw new AppError('Ticket not found.', 404);
+    }
+
+    // Role-based access control checks
+    if (role === 'CUSTOMER' && ticket.customerId !== userId) {
+      throw new AppError('You are not authorized to star this ticket.', 403);
+    }
+    if (role === 'EMPLOYEE' && ticket.assigneeId !== userId) {
+      throw new AppError('You are not authorized to star this ticket.', 403);
     }
 
     // Check if already starred
@@ -56,7 +65,7 @@ class StarredTicketService {
   /**
    * Unstars a ticket privately for the user.
    */
-  async unstarTicket(userId, ticketId) {
+  async unstarTicket(userId, role, ticketId) {
     const tId = parseInt(ticketId, 10);
     const ticket = await ticketRepository.findUnique({
       where: { id: tId }
@@ -64,6 +73,14 @@ class StarredTicketService {
 
     if (!ticket) {
       throw new AppError('Ticket not found.', 404);
+    }
+
+    // Role-based access control checks
+    if (role === 'CUSTOMER' && ticket.customerId !== userId) {
+      throw new AppError('You are not authorized to unstar this ticket.', 403);
+    }
+    if (role === 'EMPLOYEE' && ticket.assigneeId !== userId) {
+      throw new AppError('You are not authorized to unstar this ticket.', 403);
     }
 
     // Check if starred

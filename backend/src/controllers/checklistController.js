@@ -3,7 +3,11 @@ const catchAsync = require('../utils/catchAsync');
 
 class ChecklistController {
   getChecklist = catchAsync(async (req, res, next) => {
-    const items = await checklistService.getChecklist(req.params.ticketId);
+    const items = await checklistService.getChecklist(
+      req.user.id,
+      req.user.role,
+      req.params.ticketId
+    );
     
     res.status(200).json({
       status: 'success',

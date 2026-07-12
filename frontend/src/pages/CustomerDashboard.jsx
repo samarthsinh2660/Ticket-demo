@@ -196,7 +196,7 @@ export default function CustomerDashboard() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-650 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">All Statuses</option>
                   <option value="TO_DO">To Do</option>
@@ -210,7 +210,7 @@ export default function CustomerDashboard() {
                 <select
                   value={priorityFilter}
                   onChange={(e) => setStatusPriority(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-650 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">All Priorities</option>
                   <option value="LOW">Low</option>
@@ -224,7 +224,7 @@ export default function CustomerDashboard() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setStatusCategory(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border border-gray-250 dark:border-gray-650 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">All Categories</option>
                   <option value="BUG">Bug</option>
@@ -338,7 +338,7 @@ export default function CustomerDashboard() {
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
-              className="px-4 py-2 border border-gray-250 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-350 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-350 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors"
             >
               Cancel
             </button>
@@ -363,23 +363,23 @@ export default function CustomerDashboard() {
           <div className="space-y-6">
             
             {/* Title & Star Button */}
-            <div className="flex justify-between items-start bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-750">
+            <div className="flex justify-between items-start bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
               <div className="flex-1 mr-2">
-                <span className="font-mono text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-wider">{selectedTicket.ticketNumber}</span>
+                <span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{selectedTicket.ticketNumber}</span>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mt-0.5">{selectedTicket.title}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => handleToggleStar(selectedTicket.id)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-500 hover:bg-gray-150 dark:hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
                 title={selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'Unstar Ticket' : 'Star Ticket'}
               >
-                <Star className={`w-5 h-5 ${selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'text-yellow-505 fill-yellow-500' : 'text-gray-400'}`} />
+                <Star className={`w-5 h-5 ${selectedTicket.starredBy && selectedTicket.starredBy.length > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
               </button>
             </div>
 
             {/* Context Fields */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-750 text-xs">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 text-xs">
               <div>
                 <p className="text-gray-400 dark:text-gray-500">Status</p>
                 <div className="mt-1"><StatusBadge status={selectedTicket.status} /></div>

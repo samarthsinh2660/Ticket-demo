@@ -5,14 +5,18 @@ const { TICKET_STATUS, TICKET_PRIORITY, TICKET_CATEGORY } = require('../constant
  * Validates request data when creating a ticket.
  */
 const validateCreateTicket = (data) => {
-  const { title, description, category } = data;
-  
-  if (!title || !description || !category) {
+  const { title, description, category, priority } = data;
+
+  if (!title || !title.trim() || !description || !description.trim() || !category) {
     throw new AppError('Title, description, and category are required.', 400);
   }
-  
+
   if (!Object.values(TICKET_CATEGORY).includes(category)) {
     throw new AppError(`Invalid ticket category. Permitted: ${Object.values(TICKET_CATEGORY).join(', ')}`, 400);
+  }
+
+  if (priority && !Object.values(TICKET_PRIORITY).includes(priority)) {
+    throw new AppError(`Invalid ticket priority. Permitted: ${Object.values(TICKET_PRIORITY).join(', ')}`, 400);
   }
 };
 

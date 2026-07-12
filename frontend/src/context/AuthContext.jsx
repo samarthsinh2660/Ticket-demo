@@ -3,20 +3,53 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+// Helper to write to cookies
+export const setCookie = (name, value, days) => {
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+};
+
+// Helper to read from cookies
+export const getCookie = (name) => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+// Helper to erase cookies
+export const eraseCookie = (name) => {
+  document.cookie = name + '=; Max-Age=-99999999; path=/;';
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
-    if (savedUser) {
+    const token = getCookie('accessToken');
+    if (savedUser && token) {
       try {
         setUser(JSON.parse(savedUser));
       } catch (err) {
         localStorage.removeItem('user');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        eraseCookie('accessToken');
+        eraseCookie('refreshToken');
       }
+    } else {
+      localStorage.removeItem('user');
+      eraseCookie('accessToken');
+      eraseCookie('refreshToken');
     }
     setLoading(false);
   }, []);
@@ -27,8 +60,8 @@ export function AuthProvider({ children }) {
     
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    setCookie('accessToken', accessToken, 2); // 48h (2 days)
+    setCookie('refreshToken', refreshToken, 7); // 7 days
     
     return userData;
   };
@@ -39,8 +72,8 @@ export function AuthProvider({ children }) {
     
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    setCookie('accessToken', accessToken, 2); // 48h
+    setCookie('refreshToken', refreshToken, 7); // 7 days
     
     return userData;
   };
@@ -48,8 +81,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    eraseCookie('accessToken');
+    eraseCookie('refreshToken');
   };
 
   return (

@@ -2,7 +2,8 @@ const express = require('express');
 const ticketController = require('../controllers/ticketController');
 const checklistController = require('../controllers/checklistController');
 const starredTicketController = require('../controllers/starredTicketController');
-const { protect } = require('../middlewares/auth');
+const { protect, restrictTo } = require('../middlewares/auth');
+const validateParams = require('../middlewares/validateParams');
 
 const router = express.Router();
 
@@ -14,24 +15,25 @@ router
   .post(ticketController.create)
   .get(ticketController.getAll);
 
-router.get('/activity', ticketController.getRecentActivity);
+// Restrict recent activity logs to staff and administrators
+router.get('/activity', restrictTo('ADMIN', 'EMPLOYEE'), ticketController.getRecentActivity);
 
 router
   .route('/:id')
-  .get(ticketController.getOne)
-  .patch(ticketController.update)
-  .delete(ticketController.delete);
+  .get(validateParams('id'), ticketController.getOne)
+  .patch(validateParams('id'), ticketController.update)
+  .delete(validateParams('id'), ticketController.delete);
 
 // Checklist sub-routes
 router
   .route('/:ticketId/checklist')
-  .get(checklistController.getChecklist)
-  .post(checklistController.createChecklistItem);
+  .get(validateParams('ticketId'), checklistController.getChecklist)
+  .post(validateParams('ticketId'), checklistController.createChecklistItem);
 
 // Star/Unstar sub-routes
 router
   .route('/:ticketId/star')
-  .post(starredTicketController.starTicket)
-  .delete(starredTicketController.unstarTicket);
+  .post(validateParams('ticketId'), starredTicketController.starTicket)
+  .delete(validateParams('ticketId'), starredTicketController.unstarTicket);
 
 module.exports = router;
