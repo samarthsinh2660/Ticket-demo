@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 5000;
 
 // Standard middleware
 const allowedOrigins = [
+  'https://ticket-demo.vercel.app',
   'https://ticket-demo-git-ticket-system-samarth-valas-projects.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
