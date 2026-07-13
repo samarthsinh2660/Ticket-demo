@@ -12,13 +12,15 @@ import StarredTicketList from '../components/StarredTicketList';
 import Checklist from '../components/Checklist';
 import AuditTimeline from '../components/AuditTimeline';
 import AttachmentsSection from '../components/AttachmentsSection';
-import { Calendar, Settings, MessageSquare, Send, Clock, BookOpen, Star } from 'lucide-react';
+import { Calendar, Settings, MessageSquare, Send, Clock, BookOpen, Star, Search } from 'lucide-react';
 
 export default function EmployeeDashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
   const [activeTab, setActiveTab] = useState('board');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -128,9 +130,15 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar title={activeTab === 'starred' ? 'Starred Tickets' : 'Staff Workspace'} searchVal={activeTab === 'board' ? searchVal : undefined} setSearchVal={activeTab === 'board' ? setSearchVal : undefined} />
+        <Navbar 
+          title={activeTab === 'starred' ? 'Starred Tickets' : 'Assigned Tickets'} 
+          searchVal={activeTab === 'board' ? searchVal : undefined} 
+          setSearchVal={activeTab === 'board' ? setSearchVal : undefined} 
+          onMenuClick={() => setSidebarOpen(true)}
+        />
+
 
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           
@@ -138,9 +146,23 @@ export default function EmployeeDashboard() {
             <>
               {/* Header Action & Filter Panel */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+                
+                {/* Mobile Search Input */}
+                <div className="sm:hidden relative w-full">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Search className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search tickets..."
+                    value={searchVal || ''}
+                    onChange={(e) => setSearchVal(e.target.value)}
+                    className="block w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
             
-            {/* Filter selectors */}
-            <div className="flex flex-wrap items-center gap-3 text-sm">
+                {/* Filter selectors */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
               <div>
                 <select
                   value={statusFilter}

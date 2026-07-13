@@ -52,9 +52,11 @@ export default function AdminDashboard() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Dashboard Tabs: 'analytics', 'board', or 'employees'
   const [activeTab, setActiveTab] = useState('analytics');
+
 
   // Ticket Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -439,14 +441,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Navbar 
           title="System Administrator Panel" 
           searchVal={activeTab === 'board' ? searchVal : undefined} 
           setSearchVal={activeTab === 'board' ? setSearchVal : undefined} 
+          onMenuClick={() => setSidebarOpen(true)}
         />
+
 
         {/* Workspace Body */}
         <main className="flex-1 overflow-y-auto p-6">
@@ -613,6 +617,21 @@ export default function AdminDashboard() {
             <div className="space-y-6 animate-fadeIn">
               {/* Filter controls panel */}
               <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm text-sm transition-colors">
+                
+                {/* Mobile Search Input */}
+                <div className="sm:hidden relative w-full">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Search className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search tickets..."
+                    value={searchVal || ''}
+                    onChange={(e) => setSearchVal(e.target.value)}
+                    className="block w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+
                 <div>
                   <select
                     value={statusFilter}

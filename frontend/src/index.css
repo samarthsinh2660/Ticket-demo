@@ -8,3 +8,14 @@ html, body, #root {
   margin: 0;
   padding: 0;
 }
+
+/* Disable focus outline borders on Recharts SVG segments */
+.recharts-default-tooltip,
+.recharts-pie-sector,
+.recharts-pie-sector:focus,
+path:focus,
+g:focus,
+svg:focus {
+  outline: none !important;
+}
+

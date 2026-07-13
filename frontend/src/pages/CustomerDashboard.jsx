@@ -12,7 +12,7 @@ import StarredTicketList from '../components/StarredTicketList';
 import Checklist from '../components/Checklist';
 import AuditTimeline from '../components/AuditTimeline';
 import AttachmentsSection from '../components/AttachmentsSection';
-import { Plus, X, AlertCircle, MessageSquare, Send, CheckCircle2, Star, BarChart3, Clock, Users, CheckCircle, FileSpreadsheet, Eye, Download, Trash2, LayoutDashboard, Paperclip, TrendingUp } from 'lucide-react';
+import { Plus, X, AlertCircle, MessageSquare, Send, CheckCircle2, Star, BarChart3, Clock, Users, CheckCircle, FileSpreadsheet, Eye, Download, Trash2, LayoutDashboard, Paperclip, TrendingUp, Search } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function CustomerDashboard() {
@@ -21,6 +21,8 @@ export default function CustomerDashboard() {
   const [searchVal, setSearchVal] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activities, setActivities] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -297,7 +299,7 @@ export default function CustomerDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Navbar 
           title={
@@ -309,15 +311,59 @@ export default function CustomerDashboard() {
           } 
           searchVal={activeTab === 'board' ? searchVal : undefined} 
           setSearchVal={activeTab === 'board' ? setSearchVal : undefined} 
+          onMenuClick={() => setSidebarOpen(true)}
         />
+
 
         {/* Workspace Body */}
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fadeIn">
+              {/* Mobile/Tablet Quick Actions (visible on mobile, hidden on desktop xl views) */}
+              <div className="xl:hidden bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm transition-colors space-y-4">
+                <h4 className="text-xs sm:text-sm font-bold text-gray-850 dark:text-gray-350">Quick Actions</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-semibold">
+                  <button
+                    onClick={() => setIsCreateOpen(true)}
+                    className="p-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all text-center flex flex-col items-center justify-center space-y-1"
+                  >
+                    <Plus className="w-5 h-5 animate-pulse" />
+                    <span>Raise Ticket</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('starred')}
+                    className="p-3 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-950/10 dark:hover:bg-yellow-950/25 text-yellow-600 dark:text-yellow-500 rounded-xl transition-all text-center flex flex-col items-center justify-center space-y-1"
+                  >
+                    <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                    <span>View Starred</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('IN_PROGRESS');
+                      setActiveTab('board');
+                    }}
+                    className="p-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/30 text-blue-600 dark:text-indigo-400 rounded-xl transition-all text-center flex flex-col items-center justify-center space-y-1"
+                  >
+                    <Clock className="w-5 h-5" />
+                    <span>View Open</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('CLOSED');
+                      setActiveTab('board');
+                    }}
+                    className="p-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl transition-all text-center flex flex-col items-center justify-center space-y-1"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    <span>View Closed</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-6">
+
                 {/* Total */}
                 <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm flex items-center justify-between transition-colors">
                   <div>
@@ -501,8 +547,8 @@ export default function CustomerDashboard() {
 
                 {/* Right: Quick Actions & Timeline */}
                 <div className="space-y-6">
-                  {/* Quick Actions Panel */}
-                  <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm transition-colors space-y-4">
+                  {/* Desktop Quick Actions (hidden on mobile, visible on desktop xl views) */}
+                  <div className="hidden xl:block bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm transition-colors space-y-4">
                     <h4 className="text-sm font-bold text-gray-850 dark:text-gray-350">Quick Actions</h4>
                     <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
                       <button
@@ -584,9 +630,23 @@ export default function CustomerDashboard() {
             <>
               {/* Header Action & Filter Panel */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+                
+                {/* Mobile Search Input */}
+                <div className="sm:hidden relative w-full">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Search className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search tickets..."
+                    value={searchVal || ''}
+                    onChange={(e) => setSearchVal(e.target.value)}
+                    className="block w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
             
-            {/* Filter selectors */}
-            <div className="flex flex-wrap items-center gap-3 text-sm">
+                {/* Filter selectors */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
               <div>
                 <select
                   value={statusFilter}

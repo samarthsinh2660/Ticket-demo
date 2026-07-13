@@ -4,7 +4,7 @@ import api from '../services/api';
 import Modal from './Modal';
 import { Kanban, LogOut, ShieldAlert, UserCheck, Users, BarChart3, Briefcase, KeyRound, AlertCircle, CheckCircle, Star } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab }) {
+export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
   const { user, logout } = useAuth();
   
   // Self-contained change password modal state
@@ -15,6 +15,21 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const handleTabClick = (tab) => {
+    if (setActiveTab) setActiveTab(tab);
+    if (onClose) onClose();
+  };
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -53,7 +68,20 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
   return (
     <>
-      <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col h-screen select-none border-r border-slate-800 flex-shrink-0">
+      {/* Mobile/Tablet Backdrop Overlay */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden transition-opacity duration-300 animate-fadeIn"
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-100 flex flex-col h-screen select-none border-r border-slate-800 transition-transform duration-300 ease-in-out transform lg:translate-x-0 lg:static lg:flex-shrink-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         
         {/* Branding */}
         <div className="flex items-center space-x-3 p-6 border-b border-slate-800">
@@ -114,7 +142,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveTab && setActiveTab('board')}
+                  onClick={() => handleTabClick('board')}
                   className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                     activeTab === 'board'
                       ? 'bg-slate-800 text-white shadow-sm'
@@ -126,7 +154,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab && setActiveTab('starred')}
+                  onClick={() => handleTabClick('starred')}
                   className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                     activeTab === 'starred'
                       ? 'bg-slate-800 text-white shadow-sm'
@@ -145,7 +173,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveTab && setActiveTab('employees')}
+                  onClick={() => handleTabClick('employees')}
                   className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                     activeTab === 'employees'
                       ? 'bg-slate-800 text-white shadow-sm'
@@ -157,7 +185,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab && setActiveTab('analytics')}
+                  onClick={() => handleTabClick('analytics')}
                   className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                     activeTab === 'analytics'
                       ? 'bg-slate-800 text-white shadow-sm'
@@ -178,7 +206,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </div>
               <button
                 type="button"
-                onClick={() => setActiveTab && setActiveTab('dashboard')}
+                onClick={() => handleTabClick('dashboard')}
                 className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === 'dashboard'
                     ? 'bg-slate-800 text-white shadow-sm'
@@ -190,7 +218,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab && setActiveTab('board')}
+                onClick={() => handleTabClick('board')}
                 className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === 'board'
                     ? 'bg-slate-800 text-white shadow-sm'
@@ -202,7 +230,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab && setActiveTab('starred')}
+                onClick={() => handleTabClick('starred')}
                 className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === 'starred'
                     ? 'bg-slate-800 text-white shadow-sm'
@@ -222,7 +250,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </div>
               <button
                 type="button"
-                onClick={() => setActiveTab && setActiveTab('board')}
+                onClick={() => handleTabClick('board')}
                 className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === 'board'
                     ? 'bg-slate-800 text-white shadow-sm'
@@ -234,7 +262,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab && setActiveTab('starred')}
+                onClick={() => handleTabClick('starred')}
                 className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === 'starred'
                     ? 'bg-slate-800 text-white shadow-sm'
