@@ -4,6 +4,7 @@ const ticketRoutes = require('./ticketRoutes');
 const userRoutes = require('./userRoutes');
 const employeeRoutes = require('./employeeRoutes');
 const checklistRoutes = require('./checklistRoutes');
+const attachmentRoutes = require('./attachmentRoutes');
 
 const router = express.Router();
 
@@ -12,5 +13,6 @@ router.use('/tickets', ticketRoutes);
 router.use('/users', userRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/checklist', checklistRoutes);
+router.use('/attachments', attachmentRoutes);
 
 module.exports = router;

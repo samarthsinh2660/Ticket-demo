@@ -60,7 +60,7 @@ class TicketController {
   });
 
   getRecentActivity = catchAsync(async (req, res, next) => {
-    const activity = await ticketService.getRecentActivity();
+    const activity = await ticketService.getRecentActivity(req.user.id, req.user.role);
     res.status(200).json({
       status: 'success',
       data: {

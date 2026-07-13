@@ -15,8 +15,8 @@ router
   .post(ticketController.create)
   .get(ticketController.getAll);
 
-// Restrict recent activity logs to staff and administrators
-router.get('/activity', restrictTo('ADMIN', 'EMPLOYEE'), ticketController.getRecentActivity);
+// Fetch recent activity logs (filtered by user role)
+router.get('/activity', ticketController.getRecentActivity);
 
 router
   .route('/:id')
@@ -35,5 +35,17 @@ router
   .route('/:ticketId/star')
   .post(validateParams('ticketId'), starredTicketController.starTicket)
   .delete(validateParams('ticketId'), starredTicketController.unstarTicket);
+
+// Attachments sub-routes
+const attachmentController = require('../controllers/attachmentController');
+const upload = require('../middlewares/upload');
+router
+  .route('/:ticketId/attachments')
+  .get(validateParams('ticketId'), attachmentController.getAttachments)
+  .post(
+    validateParams('ticketId'),
+    upload.single('file'),
+    attachmentController.uploadAttachment
+  );
 
 module.exports = router;

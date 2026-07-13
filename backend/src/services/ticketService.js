@@ -131,6 +131,12 @@ class TicketService {
         customer: { select: { id: true, name: true, email: true } },
         assignee: { select: { id: true, name: true, email: true } },
         starredBy: { where: { userId } },
+        attachments: {
+          include: {
+            uploadedBy: { select: { id: true, name: true, role: true } }
+          },
+          orderBy: { createdAt: 'asc' }
+        },
         activityLogs: {
           include: {
             user: { select: { id: true, name: true, role: true } },
@@ -411,10 +417,18 @@ class TicketService {
   }
 
   /**
-   * Fetches latest global activity logs for admin dashboard.
+   * Fetches latest global activity logs for dashboards (filtered by role).
    */
-  async getRecentActivity() {
+  async getRecentActivity(userId, role) {
+    const where = {};
+    if (role === 'CUSTOMER') {
+      where.ticket = { customerId: userId };
+    } else if (role === 'EMPLOYEE') {
+      where.ticket = { assigneeId: userId };
+    }
+
     return await activityLogRepository.findMany({
+      where,
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {

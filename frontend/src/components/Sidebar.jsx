@@ -178,6 +178,18 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </div>
               <button
                 type="button"
+                onClick={() => setActiveTab && setActiveTab('dashboard')}
+                className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === 'dashboard'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 text-indigo-400" />
+                <span>My Dashboard</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveTab && setActiveTab('board')}
                 className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === 'board'

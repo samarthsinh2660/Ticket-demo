@@ -11,6 +11,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import StarredTicketList from '../components/StarredTicketList';
 import Checklist from '../components/Checklist';
 import AuditTimeline from '../components/AuditTimeline';
+import AttachmentsSection from '../components/AttachmentsSection';
 import {
   PieChart,
   Pie,
@@ -1093,6 +1094,16 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+
+            {/* Attachments Section */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <AttachmentsSection
+                ticketId={selectedTicket.id}
+                attachments={selectedTicket.attachments || []}
+                onAttachmentChange={() => fetchSingleTicket(selectedTicket.id)}
+                readOnly={selectedTicket.status === 'CLOSED'}
+              />
+            </div>
 
             {/* Checklist Section */}
             <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
